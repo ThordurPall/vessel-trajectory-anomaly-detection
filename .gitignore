@@ -1,0 +1,10 @@
+# Exclude data from source control
+/data/raw/
+/data/intermediate/
+/data/processed/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Do not upload the secret config
+/src/secret_config.ini
