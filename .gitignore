@@ -9,6 +9,9 @@ data/processed/
 # Do not upload the secret config
 src/secret_config.ini
 
+# Exclude report ready .pdf files
+*.pdf
+
 # Distribution / packaging
 .Python
 env/
