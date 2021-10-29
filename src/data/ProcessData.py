@@ -162,14 +162,22 @@ class ProcessData:
             result_file_name,
         )
 
-        # With the trajectories, now randomly make the train and test splits
-        n = len(trajectories["indicies"]) // 5
-        testIndex = np.random.choice(trajectories["indicies"], size=n, replace=False)
-        trainIndex = [
-            index for index in trajectories["indicies"] if index not in testIndex
+        # With the trajectories, now randomly make the train, validation and test set splits
+        n = len(trajectories["indicies"]) // 5  # 80% for training
+        val_test_indices = np.random.choice(
+            trajectories["indicies"], size=n, replace=False
+        )
+        trajectories["trainIndicies"] = [
+            index for index in trajectories["indicies"] if index not in val_test_indices
         ]
-        trajectories["testIndicies"] = testIndex
-        trajectories["trainIndicies"] = trainIndex
+
+        # Split the other 20% equally into validation and test sets
+        n = len(val_test_indices) // 2  # 10% validation and 10% test
+        test_indices = list(np.random.choice(val_test_indices, size=n, replace=False))
+        trajectories["testIndicies"] = test_indices
+        trajectories["valIndicies"] = [
+            index for index in val_test_indices if index not in test_indices
+        ]
 
         # Write the data set information to a file
         with open(
