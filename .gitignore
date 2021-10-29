@@ -1,10 +1,32 @@
 # Exclude data from source control
-/data/raw/
-/data/intermediate/
-/data/processed/
+data/raw/
+data/intermediate/
+data/processed/
 
 # Jupyter Notebook checkpoints
 .ipynb_checkpoints/
 
 # Do not upload the secret config
-/src/secret_config.ini
+src/secret_config.ini
+
+# Distribution / packaging
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
