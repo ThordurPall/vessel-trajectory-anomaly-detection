@@ -28,7 +28,7 @@ class AISDiscreteRepresentation(torch.utils.data.Dataset):
         None, either a validation or test Dataset is created
 
     data_info : dict
-        Summary information about the data
+        Information about the data
 
     data_path : str
         Path to the actual data set location
@@ -51,11 +51,11 @@ class AISDiscreteRepresentation(torch.utils.data.Dataset):
         Computs the mean of how often the different bins are activated
     """
 
-    def __init__(self, summary_file_path, train_mean=None, validation=False):
+    def __init__(self, data_info_file_path, train_mean=None, validation=False):
         """
         Parameters
         ----------
-        summary_file_path : pathlib.WindowsPath
+        data_info_file_path : pathlib.WindowsPath
             Path to where the summary data is located
 
         train_mean : Tensor (Defaults to None)
@@ -68,9 +68,9 @@ class AISDiscreteRepresentation(torch.utils.data.Dataset):
         """
         logger = logging.getLogger(__name__)  # For logging information
 
-        # Read the summary pickle file into memory
-        logger.info("Processing data from the info file: " + str(summary_file_path))
-        with open(summary_file_path, "rb") as f:
+        # Read the data info pickle file into memory
+        logger.info("Processing data from the info file: " + str(data_info_file_path))
+        with open(data_info_file_path, "rb") as f:
             self.data_info = pickle.load(f)
         self.data_path = self.data_info["dataFileName"]
 
