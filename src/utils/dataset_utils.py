@@ -91,9 +91,12 @@ def PadSequence(batch):
     inputs = [x[4] for x in batch]
     targets = [x[5] for x in batch]
 
-    # Get each sequence and pad it - Returns zero padded inputs and targets (all samples with the same lengths)
+    # Get each sequence and pad it - Returns zero padded inputs and targets (all samples with the same lengths).
+    # Seqeuences are padded to the maximum length of mini-batch sequences
     inputs_padded = torch.nn.utils.rnn.pad_sequence(inputs, batch_first=True)
     targets_padded = torch.nn.utils.rnn.pad_sequence(targets, batch_first=True)
+
+    breakpoint()
 
     return (
         torch.tensor(mmsis),
