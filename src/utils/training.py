@@ -1,10 +1,12 @@
+import os
+import pickle
+import sys
+
 import numpy as np
 import torch
-import os
-import sys
-import pickle
 
 from utils import plotting
+
 
 def computeLoss(log_px, log_pz, log_qz, lengths, beta=1):
 

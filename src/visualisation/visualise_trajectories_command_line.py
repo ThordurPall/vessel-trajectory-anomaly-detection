@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
-import click
-from pathlib import Path
-import logging
-from src.visualisation.VisualiseTrajectories import VisualiseTrajectories
-import datetime
 import configparser
+import datetime
+import logging
+from pathlib import Path
+
+import click
+
+from src.visualisation.VisualiseTrajectories import VisualiseTrajectories
 
 
 @click.command()

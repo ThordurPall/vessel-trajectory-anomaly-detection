@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
-import click
-import logging
-from src.data.ProcessData import ProcessData
 import datetime
+import logging
+
+import click
+
+from src.data.ProcessData import ProcessData
 
 
 @click.command()

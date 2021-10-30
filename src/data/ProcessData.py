@@ -1,12 +1,14 @@
-from pathlib import Path
-from src.Config import Config, ROISCOGConfig
-import src.utils.createDataset as createDataset
+import datetime
 import logging
+import pickle
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
-import pickle
-import datetime
 import progressbar
+
+import src.utils.createDataset as createDataset
+from src.Config import Config, ROISCOGConfig
 
 
 class ProcessData:

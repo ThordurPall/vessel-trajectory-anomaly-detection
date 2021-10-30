@@ -1,12 +1,12 @@
-import matplotlib.pyplot as plt
-import seaborn as sns
-import numpy as np
-import requests
-import torch
-import progressbar
-
+from math import cos, pi
 from typing import *
-from math import pi, cos
+
+import matplotlib.pyplot as plt
+import numpy as np
+import progressbar
+import requests
+import seaborn as sns
+import torch
 from sklearn.manifold import TSNE
 
 

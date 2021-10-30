@@ -1,12 +1,16 @@
-from pathlib import Path
-from src.Config import ROISCOGConfig
-import src.utils.utils as utils
-import src.utils.plotting as plotting
 import logging
-import matplotlib.pyplot as plt, matplotlib.style as style, matplotlib.image as mpimg
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-import seaborn as sns
+from pathlib import Path
+
+import matplotlib.image as mpimg
+import matplotlib.pyplot as plt
+import matplotlib.style as style
 import progressbar
+import seaborn as sns
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+
+import src.utils.plotting as plotting
+import src.utils.utils as utils
+from src.Config import ROISCOGConfig
 
 
 class VisualiseTrajectories:

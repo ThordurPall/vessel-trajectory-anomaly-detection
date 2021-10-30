@@ -1,8 +1,12 @@
 from pathlib import Path
-import src.utils.utils as utils
-import matplotlib.pyplot as plt, matplotlib.style as style, matplotlib.image as mpimg
-import seaborn as sns
+
+import matplotlib.image as mpimg
+import matplotlib.pyplot as plt
+import matplotlib.style as style
 import pandas as pd
+import seaborn as sns
+
+import src.utils.utils as utils
 
 
 class SummaryTrajectories:
