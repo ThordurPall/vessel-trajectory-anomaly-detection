@@ -89,7 +89,7 @@ class AISDiscreteRepresentation(torch.utils.data.Dataset):
             len(lat_edges) + len(lon_edges) + len(speed_edges) + len(course_edges) - 4
         )
 
-        # Compute the main from the training set but otherwise use the training mean
+        # Compute the mean from the training set but otherwise use the training mean
         if train_mean == None:
             logger.info("Computing training mean values using self.compute_mean()")
             self.mean = self.compute_mean()
@@ -159,8 +159,6 @@ class AISDiscreteRepresentation(torch.utils.data.Dataset):
         Tensor
             The mean values of how often the different bins are activated
         """
-        logger = logging.getLogger(__name__)  # For logging information
-
         sum_all = np.zeros((self.data_dim))
         total_updates = 0
 
@@ -171,7 +169,6 @@ class AISDiscreteRepresentation(torch.utils.data.Dataset):
                 track = pickle.load(file)
             df = pd.DataFrame(track)
 
-            logger.info("Four hot encode trajectory using dataset_utils.FourHotEncode")
             encodedTrack = dataset_utils.FourHotEncode(
                 df, self.data_info["binedges"]
             )  # seq_len X data_dim

@@ -52,18 +52,19 @@ def createDenseVector(update, lat_edges, lon_edges, speed_edges, course_edges):
     cog_dim = len(course_edges) - 1
     data_dim = lat_dim + lon_dim + sog_dim + cog_dim
 
+    # Find out in which bin the current updates belong
     # Take max to fix case when value = lowestEdge
     lat_idx = np.max([1, np.digitize(update["lat"], lat_edges, right=True)])
     lon_idx = np.max([1, np.digitize(update["lon"], lon_edges, right=True)])
     sog_idx = np.max([1, np.digitize(update["speed"], speed_edges, right=True)])
     cog_idx = np.max([1, np.digitize(update["course"], course_edges, right=True)])
 
+    # All but four values will be zero - Set the four ones at correct indices
     dense_vect = np.zeros(data_dim)
     dense_vect[lat_idx - 1] = 1
     dense_vect[lat_dim + lon_idx - 1] = 1
     dense_vect[lat_dim + lon_dim + sog_idx - 1] = 1
     dense_vect[lat_dim + lon_dim + sog_dim + cog_idx - 1] = 1
-
     return dense_vect
 
 
