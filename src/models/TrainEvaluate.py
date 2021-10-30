@@ -15,7 +15,7 @@ from src.data.Datasets import AISDiscreteRepresentation
 
 class TrainEvaluate:
     """
-    A class that handles everything related to training models in this project
+    A class that handles everything related to training and evaluating models in this project
 
     ...
 
@@ -82,11 +82,11 @@ class TrainEvaluate:
         validation_set = AISDiscreteRepresentation(
             file_name, self.train_mean, validation=True
         )
-        self.validation_n = len(training_set)
+        self.validation_n = len(validation_set)
         test_set = AISDiscreteRepresentation(
             file_name, self.train_mean, validation=False
         )
-        self.test_n = len(training_set)
+        self.test_n = len(test_set)
 
         # Define the training, validation, and test DataLoaders
         # Passing pin_memory=True will automatically put the fetched data Tensors in pinned memory,
@@ -131,7 +131,7 @@ class TrainEvaluate:
         ).to(self.device)
 
         # String that describes the mdoel setup used
-        batchNorm = "_batchNorm" if batch_norm else ""
+        batchNorm = "_batchNormTrue" if batch_norm else "_batchNormFalse"
         self.model_name = (
             "model_VRNN"
             + "_"
@@ -219,15 +219,22 @@ class TrainEvaluate:
     def train_loop(self, optimizer, beta_weight, kl_weight_step, kl_weight):
         """The Train Loop:
 
-        Parameters
-        ----------
-        num_epochs : int
-            The number times to iterate over the entire data set
+                    Iterate over the training data set and try to converge to optimal parameters
+                    Inside the training loop, optimization happens in three steps:
+        Call optimizer.zero_grad() to reset the gradients of model parameters. Gradients by default add up; to prevent double-counting, we explicitly zero them at each iteration.
+        Backpropagate the prediction loss with a call to loss.backwards(). PyTorch deposits the gradients of the loss w.r.t. each parameter.
+        Once we have our gradients, we call optimizer.step() to adjust the parameters by the gradients collected in the backward pass.
 
-        Returns
-        -------
-            :
-            The calculated loss function
+
+                Parameters
+                ----------
+                num_epochs : int
+                    The number times to iterate over the entire data set
+
+                Returns
+                -------
+                    :
+                    The calculated loss function
 
         """
         # Iterate over a data set of inputs - Begin training loop
@@ -378,7 +385,9 @@ class TrainEvaluate:
         kl_weight_step = abs(kl_weight - kl_anneling_start) / (10 * self.training_n)
 
         for epoch in range(1, num_epochs + 1):
-            logger.info(f"Epoch {epoch}\n-------------------------------")
+            logger.info(
+                f"Epoch {epoch} Start ------------------------------------------------------------------------------------"
+            )
             logger.info("Run the training loop")
             train_results = self.train_loop(
                 optimizer, beta_weight, kl_weight_step, kl_weight
@@ -389,7 +398,7 @@ class TrainEvaluate:
 
             logger.info("Run the validation loop")
             val_results = self.evaluate_loop(
-                self, self.validation_dataloader, self.validation_n, beta_weight
+                self.validation_dataloader, self.validation_n, beta_weight
             )
             val_loss_tot.append(val_results[0])
             val_kl_tot.append(val_results[1])
@@ -404,9 +413,10 @@ class TrainEvaluate:
                 self.model,
                 datapoints,
                 validation_set,
-                validation_set.params["binedges"],
+                validation_set.data_info["binedges"],
                 self.device,
-                figurename=self.model_name,
+                figure_path=self.model_intermediate_dir
+                / (self.model_name + "_Results_" + str(epoch) + ".pdf"),
             )
             logger.info(
                 "Epoch {} of {} finished. Training loss = {}. Validation loss = {}".format(
@@ -435,6 +445,9 @@ class TrainEvaluate:
                     "wb",
                 ) as f:
                     pickle.dump(training_curves, f)
+        logger.info(
+            f"Epoch {epoch} End ------------------------------------------------------------------------------------"
+        )
 
         training_curves = {
             "loss_tot": loss_tot,

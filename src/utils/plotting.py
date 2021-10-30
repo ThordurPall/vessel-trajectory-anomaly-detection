@@ -437,8 +437,8 @@ def make_vae_plots(
     validationdata,
     binedges,
     device,
+    figure_path,
     savefig=True,
-    figurename="Resultsplot",
 ):
 
     loss_tot, kl_tot, recon_tot, val_loss_tot, val_kl_tot, val_recon_tot = losses
@@ -469,7 +469,7 @@ def make_vae_plots(
         datatarget_gpu = datatarget.to(device)
 
         logits = torch.zeros(
-            length.int().item(), 1, validationdata.datadim, device=device
+            length.int().item(), 1, validationdata.data_dim, device=device
         )
         _, _, _, logits, _, _, _, _ = model(
             datainput.unsqueeze(0), datatarget_gpu.unsqueeze(0), logits=logits
@@ -487,7 +487,7 @@ def make_vae_plots(
         Plot4HotEncodedTrack(recon, binedges, ax[2, i])
 
     if savefig:
-        plt.savefig("plots/Results" + figurename + ".png")
+        plt.savefig(figure_path)
         plt.close()
     else:
         plt.show()
