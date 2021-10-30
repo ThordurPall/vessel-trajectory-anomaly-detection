@@ -157,7 +157,7 @@ class AISDiscreteRepresentation(torch.utils.data.Dataset):
         Returns
         -------
         Tensor
-            The mean values
+            The mean values of how often the different bins are activated
         """
         logger = logging.getLogger(__name__)  # For logging information
 
