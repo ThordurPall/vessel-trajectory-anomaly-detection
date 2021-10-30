@@ -119,10 +119,8 @@ class AISDiscreteRepresentation(torch.utils.data.Dataset):
         tuple
             Set of trajectory information as well as inputs and targets
         """
-        logger = logging.getLogger(__name__)  # For logging information
 
         # Load the data file for the requested index
-        logger.info("Processing data from the data file: " + str(self.data_path))
         with open(self.data_path, "rb") as file:
             # Read the track from the corresponding point in memory
             file.seek(self.indicies[idx])
@@ -130,11 +128,9 @@ class AISDiscreteRepresentation(torch.utils.data.Dataset):
         df = pd.DataFrame(track)
 
         # Four hot encode the current trajectory
-        logger.info("Four hot encode trajectory using dataset_utils.FourHotEncode")
         encodedTrack = dataset_utils.FourHotEncode(df, self.data_info["binedges"])
 
         # Return the shipType as a label that could be useful later (e.g. for plotting)
-        logger.info("Convert shipType using dataset_utils.convertShipTypeToLabel")
         ship_type_label = dataset_utils.convertShipTypeToLabel(track["shiptype"])
 
         # The targets are just to reconstruct the input sequence
