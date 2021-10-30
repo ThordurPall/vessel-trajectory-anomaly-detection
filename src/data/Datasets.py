@@ -5,6 +5,7 @@
 
 import logging
 import pickle
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -51,12 +52,12 @@ class AISDiscreteRepresentation(torch.utils.data.Dataset):
         Computs the mean of how often the different bins are activated
     """
 
-    def __init__(self, data_info_file_path, train_mean=None, validation=False):
+    def __init__(self, file_name, train_mean=None, validation=False):
         """
         Parameters
         ----------
-        data_info_file_path : pathlib.WindowsPath
-            Path to where the summary data is located
+        file_name : str
+            Name of the main part of the file where the results are saved
 
         train_mean : Tensor (Defaults to None)
             Mean of the times a certain bin was activated. When train_mean is not
@@ -68,9 +69,14 @@ class AISDiscreteRepresentation(torch.utils.data.Dataset):
         """
         logger = logging.getLogger(__name__)  # For logging information
 
+        # Setup the correct foldure structure
+        project_dir = Path(__file__).resolve().parents[2]
+        processed_data_dir = project_dir / "data" / "processed"
+
         # Read the data info pickle file into memory
-        logger.info("Processing data from the info file: " + str(data_info_file_path))
-        with open(data_info_file_path, "rb") as f:
+        data_info_file = processed_data_dir / ("datasetInfo_" + file_name + ".pkl")
+        logger.info("Processing data from the info file: " + str(data_info_file))
+        with open(data_info_file, "rb") as f:
             self.data_info = pickle.load(f)
         self.data_path = self.data_info["dataFileName"]
 
@@ -91,7 +97,9 @@ class AISDiscreteRepresentation(torch.utils.data.Dataset):
 
         # Compute the mean from the training set but otherwise use the training mean
         if train_mean == None:
-            logger.info("Computing training mean values using self.compute_mean()")
+            logger.info(
+                "AISDiscreteRepresentation: Computing training mean values using self.compute_mean()"
+            )
             self.mean = self.compute_mean()
         else:
             self.mean = train_mean
