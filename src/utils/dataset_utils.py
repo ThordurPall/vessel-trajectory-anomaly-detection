@@ -96,8 +96,6 @@ def PadSequence(batch):
     inputs_padded = torch.nn.utils.rnn.pad_sequence(inputs, batch_first=True)
     targets_padded = torch.nn.utils.rnn.pad_sequence(targets, batch_first=True)
 
-    breakpoint()
-
     return (
         torch.tensor(mmsis),
         timestamps,
