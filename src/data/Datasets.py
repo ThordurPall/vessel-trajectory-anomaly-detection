@@ -116,7 +116,7 @@ class AISDiscreteRepresentation(torch.utils.data.Dataset):
 
         Returns
         -------
-        set
+        tuple
             Set of trajectory information as well as inputs and targets
         """
         logger = logging.getLogger(__name__)  # For logging information

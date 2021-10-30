@@ -81,6 +81,30 @@ def FourHotEncode(track, edges):
     return np.array(EncodedTrack.to_list())  # Return numpy array of ones and zeros
 
 
+def PadSequence(batch):
+    # Function that takes care of the zero padding
+    # Each element in "batch" is a tuple (MMSI, timestamps, labels, lengths, inputs, targets)
+    mmsis = [x[0] for x in batch]
+    timestamps = [x[1] for x in batch]
+    labels = [x[2] for x in batch]
+    lengths = [x[3] for x in batch]
+    inputs = [x[4] for x in batch]
+    targets = [x[5] for x in batch]
+
+    # Get each sequence and pad it - Returns zero padded inputs and targets (all samples with the same lengths)
+    inputs_padded = torch.nn.utils.rnn.pad_sequence(inputs, batch_first=True)
+    targets_padded = torch.nn.utils.rnn.pad_sequence(targets, batch_first=True)
+
+    return (
+        torch.tensor(mmsis),
+        timestamps,
+        torch.tensor(labels),
+        torch.tensor(lengths, dtype=torch.int),
+        inputs_padded,
+        targets_padded,
+    )
+
+
 class AISDataset(torch.utils.data.Dataset):
     def __init__(self, infoPath, train_mean=None):
         self.Infopath = infoPath
