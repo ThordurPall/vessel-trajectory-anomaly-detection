@@ -105,7 +105,7 @@ class Config:
         self.config["COG_RES_" + region] = 5
 
         # Set a maximum number for the speed-over-ground (SOG)
-        self.config["SOG_MAX_" + region] = 9999
+        self.config["SOG_MAX_" + region] = 25.0
 
         # Split the ROI, speed, and course into bins and define the edges of those
         self.config["LAT_EDGES_" + region] = self._calculate_edges("LAT", region, 2)
@@ -132,7 +132,7 @@ class Config:
         self.config["COG_RES_" + region] = 5
 
         # Set a maximum number for the speed-over-ground (SOG)
-        self.config["SOG_MAX_" + region] = 9999
+        self.config["SOG_MAX_" + region] = 25.0
 
         # Split the ROI, speed, and course into bins and define the edges of those
         self.config["LAT_EDGES_" + region] = self._calculate_edges("LAT", region, 2)
@@ -159,7 +159,7 @@ class Config:
         self.config["COG_RES_" + region] = 5
 
         # Set a maximum number for the speed-over-ground (SOG)
-        self.config["SOG_MAX_" + region] = 15.5
+        self.config["SOG_MAX_" + region] = 25.0
 
         # Split the ROI, speed, and course into bins and define the edges of those
         self.config["LAT_EDGES_" + region] = self._calculate_edges("LAT", region, 2)
