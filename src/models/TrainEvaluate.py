@@ -21,14 +21,55 @@ class TrainEvaluate:
 
     Attributes
     ----------
-    batch_size : int
-        The number of data samples propagated through the network before the
-        parameters are updated (hyperparameter for training)
+    model_dir : pathlib.WindowsPath
+        Path to the project model directory
+
+    model_intermediate_dir : pathlib.WindowsPath
+        Path where the intermediate model results are stored
+
+    train_mean : Tensor
+        Training set feature mean values
+
+    input_shape : int
+        Dimension of the input feature space
+
+    training_n : int
+        Size of the training set
+
+    validation_n : int
+        Size of the validation set
+
+    test_n : int
+        Size of the test set
+
+    training_dataloader : torch.utils.data.DataLoader
+        Training set DataLoader
+
+    validation_dataloader : torch.utils.data.DataLoader
+        Validation set DataLoader
+
+    test_dataloader : torch.utils.data.DataLoader
+        Test set DataLoader
+
+    model : src.models.VRNN
+        The VRNN model (trained or to train)
+
+    model_name : str
+        String that indentifies the current model setup
 
     Methods
     -------
     loss_function(log_px, log_pz, log_qz, lengths, beta)
         Computes the loss function
+
+    train_loop(optimizer, beta_weight, kl_weight_step, kl_weight)
+        The train Loop
+
+    evaluate_loop(data_loader, data_n, beta_weight)
+        The Validation/Test Loop
+
+    train_VRNN(num_epochs, learning_rate, kl_weight, kl_anneling_start)
+        Train (and validate with validation set) a deep learning VRNN model
 
     """
 
@@ -45,13 +86,28 @@ class TrainEvaluate:
         """
         Parameters
         ----------
-        num_epochs : int
-
-                # Stocastic latent space and recurrent latent space
-
         file_name : str
             Name of the main part of the file where the results are saved
 
+        batch_size : int (Defaults to 32)
+            Size of the batch of train features and targets retured in each DataLoader iteration
+
+        num_workers : int (Defaults to 0)
+            How many subprocesses to use for data loading (if 0 data will is loaded in the
+            main process). If running on Windows and you get a BrokenPipeError, try setting to zero
+
+        pin_memory : bool (Defaults tot True)
+            Setting to True will automatically put a fetched data Tensors in pinned memory,
+            and thus enables faster data transfer to CUDA-enabled GPUs (might need to set to False)
+
+        latent_dim : int (Defaults to 100)
+            Latent space size in the VRNN networks
+
+        recurrent_dim : int (Defaults to 100)
+            Recurrent latent space size in the VRNN networks
+
+        batch_norm : bool (Defaults to True)
+            When set to True, natch normalization is included in the networks
         """
         logger = logging.getLogger(__name__)  # For logging information
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -89,10 +145,6 @@ class TrainEvaluate:
         self.test_n = len(test_set)
 
         # Define the training, validation, and test DataLoaders
-        # Passing pin_memory=True will automatically put the fetched data Tensors in pinned memory,
-        # and thus enables faster data transfer to CUDA-enabled GPUs (might need to set to Fals)
-        # num_workers is how many subprocesses to use for data loading (if 0 data will is loaded in the main process)
-        # If running on Windows and you get a BrokenPipeError, try setting the num_worker of torch.utils.data.DataLoader() to 0.
         logger.info("Define the DataLoaders")
         self.training_dataloader = DataLoader(
             training_set,
@@ -268,7 +320,6 @@ class TrainEvaluate:
             optimizer.zero_grad()
 
             # Propagate gradients back into the network’s parameters
-
             loss.backward()  #  All tensors (with requires_grad=True) in the whole graph are differentiated w.r.t. the network parameters
 
             # Update the weights of the network using gradient decent
@@ -277,7 +328,6 @@ class TrainEvaluate:
             optimizer.step()  # Parameters are updated each time optimizer.step() is called
 
             # Variables for KL anneling (when included) - By default KL annealing is not introduced
-            # TODO: Add return the annealing variables
             beta_weight += kl_weight_step
             beta_weight = min(beta_weight, kl_weight)
 
@@ -288,6 +338,7 @@ class TrainEvaluate:
             loss_epoch / self.training_n,
             kl_epoch / self.training_n,
             recon_epoch / self.training_n,
+            beta_weight,
         ]
 
     def evaluate_loop(self, data_loader, data_n, beta_weight):
@@ -334,7 +385,7 @@ class TrainEvaluate:
     def train_VRNN(
         self, num_epochs=12, learning_rate=0.001, kl_weight=1, kl_anneling_start=1
     ):
-        """Train a deep learning model
+        """Train (and validate with validation set) a deep learning VRNN model
 
         Training consists of two general steps:
         Forward Propagation: The input data goes through each of the models functions to
@@ -353,12 +404,20 @@ class TrainEvaluate:
 
         Parameters
         ----------
-        num_epochs : int
+        num_epochs : int (Defaults to 30)
             The number times to iterate over the entire data set
 
-        learning_rate : float
+        learning_rate : float (Defaults to 0.001)
             How much to update models parameters at each batch. Smaller values yield slow learning speed,
             while large values may result in unpredictable behavior during training
+
+        kl_weight : int (Defaults to 1)
+            Weight of the Kullback–Leibler divergence loss
+
+        kl_anneling_start : int (Defaults to 1)
+            Weight of the Kullback–Leibler divergence loss
+            Starting value of the Kullback–Leibler divergence loss. When set to 0, the value is
+            annealed to kl_weight over 10 epochs
 
         Returns
         -------
@@ -385,9 +444,7 @@ class TrainEvaluate:
         kl_weight_step = abs(kl_weight - kl_anneling_start) / (10 * self.training_n)
 
         for epoch in range(1, num_epochs + 1):
-            logger.info(
-                f"Epoch {epoch} Start ------------------------------------------------------------------------------------"
-            )
+            logger.info(f"Epoch {epoch} Start ----------------------------------------")
             logger.info("Run the training loop")
             train_results = self.train_loop(
                 optimizer, beta_weight, kl_weight_step, kl_weight
@@ -395,6 +452,7 @@ class TrainEvaluate:
             loss_tot.append(train_results[0])
             kl_tot.append(train_results[1])
             recon_tot.append(train_results[2])
+            beta_weight = train_results[3]
 
             logger.info("Run the validation loop")
             val_results = self.evaluate_loop(
@@ -445,9 +503,7 @@ class TrainEvaluate:
                     "wb",
                 ) as f:
                     pickle.dump(training_curves, f)
-        logger.info(
-            f"Epoch {epoch} End ------------------------------------------------------------------------------------"
-        )
+        logger.info("Training End ----------------------------------------")
 
         training_curves = {
             "loss_tot": loss_tot,
