@@ -1,6 +1,7 @@
 # Please note that some code in this class builds upon work done by Kristoffer Vinther Olesen (@DTU)
 import logging
 import pickle
+import time
 from pathlib import Path
 
 import numpy as np
@@ -394,7 +395,7 @@ class TrainEvaluate:
         ]
 
     def train_VRNN(
-        self, num_epochs=20, learning_rate=0.001, kl_weight=1, kl_anneling_start=1
+        self, num_epochs=12, learning_rate=0.001, kl_weight=1, kl_anneling_start=1
     ):
         """Train (and validate with validation set) a deep learning VRNN model
 
@@ -447,11 +448,16 @@ class TrainEvaluate:
         val_loss_tot, val_kl_tot, val_recon_tot = [], [], []
 
         # Variables for KL anneling (when included) - By default KL annealing is not introduced
+        if kl_anneling_start != 1:
+            # Using KL annealing
+            self.model_name = self.model_name + "_KLTrue"
+            logger.info("Model name with KL annealing: " + self.model_name)
         beta_weight = kl_anneling_start
 
         # Annealing over 10 epochs
         kl_weight_step = abs(kl_weight - kl_anneling_start) / (10 * self.training_n)
 
+        start_time = time.time()
         for epoch in range(1, num_epochs + 1):
             logger.info(f"Epoch {epoch} Start ----------------------------------------")
             logger.info("Run the training loop")
@@ -513,6 +519,7 @@ class TrainEvaluate:
                 ) as f:
                     pickle.dump(training_curves, f)
         logger.info("Training End ----------------------------------------")
+        logger.info("--- %s seconds to train ---" % (time.time() - start_time))
 
         training_curves = {
             "loss_tot": loss_tot,
