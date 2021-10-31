@@ -115,7 +115,7 @@ class TrainEvaluate:
 
         # Setup the correct foldure structure
         project_dir = Path(__file__).resolve().parents[2]
-        self.model_dir = project_dir / "models" / "saved models"
+        self.model_dir = project_dir / "models" / "saved-models"
         self.model_intermediate_dir = self.model_dir / "intermediate"
 
         # Make sure that the model paths exists
@@ -124,10 +124,10 @@ class TrainEvaluate:
 
         # Start by preparing the data for training, validation, and testing using DataLoaders. They are basically
         # a fancy generator/iterator that abstract away all of the data handling and pre-processing
-        # (and are useful for processing batches of data). That is, the custom Datasets retrieve the dataset’s
+        # (and are useful for processing batches of data). That is, the custom Datasets retrieve the data set’s
         # features and labels one sample at a time, but while training a model the samples should be passed in minibatches,
-        # the date is reshuffled at every epoch to reduce model overfitting, and Python’s multiprocessing is used
-        # to speed up data retrieval. DataLoader is an iterable that abstracts this complexity for us in an easy API.
+        # the date is reshuffled at every epoch to reduce model overfitting, and Python’s multiprocessing can be used
+        # to speed up data retrieval. DataLoader is an iterable that abstracts this complexity with an easy API
 
         # Initialize the custom data sets - Create instances of AISDiscreteRepresentation
         logger.info("Initialize the custom data sets (AISDiscreteRepresentation)")
@@ -182,7 +182,7 @@ class TrainEvaluate:
             device=self.device,
         ).to(self.device)
 
-        # String that describes the mdoel setup used
+        # String that describes the model setup used
         batchNorm = "_batchNormTrue" if batch_norm else "_batchNormFalse"
         self.model_name = (
             "model_VRNN"
@@ -233,7 +233,7 @@ class TrainEvaluate:
         :
             The temporal mask
         """
-        # Get the maximum sequence lengths (Can vary from batch to batch)
+        # Get the sequence length for this batch (Can vary from batch to batch)
         max_seq_len = len(log_px)
 
         # Calculate the temporal mask for this batch size - Dimension: max_seq_len X batch_size
@@ -242,7 +242,7 @@ class TrainEvaluate:
         )
 
         # log_px is really an array of reconstruction log probabilities
-        # Stack that to a matrix where the first dimesnion is the time and multiply mask.
+        # Stack that to a matrix where the first dimension is the time and multiply mask.
         # The mask will zero out reconstructions at time that goes over the trajcetory length.
         # That is, do not use the reconstructions for lengths past the corresponding track length
         log_px = torch.stack(log_px, dim=0) * curmask
@@ -270,24 +270,31 @@ class TrainEvaluate:
 
     def train_loop(self, optimizer, beta_weight, kl_weight_step, kl_weight):
         """The Train Loop:
+        Iterate over the training data set and try to converge to optimal parameters.
+        Inside the training loop, optimization happens in three steps:
 
-                    Iterate over the training data set and try to converge to optimal parameters
-                    Inside the training loop, optimization happens in three steps:
-        Call optimizer.zero_grad() to reset the gradients of model parameters. Gradients by default add up; to prevent double-counting, we explicitly zero them at each iteration.
-        Backpropagate the prediction loss with a call to loss.backwards(). PyTorch deposits the gradients of the loss w.r.t. each parameter.
-        Once we have our gradients, we call optimizer.step() to adjust the parameters by the gradients collected in the backward pass.
+        1. Call optimizer.zero_grad() to reset the gradients of model parameters
+        2. Backpropagate the prediction loss (loss.backwards()). PyTorch deposits the gradients of the loss w.r.t. each parameter
+        3. With the gradients, call optimizer.step() to adjust the parameters by the gradients collected in the backward pass
 
+        Parameters
+        ----------
+        optimizer : torch.optim
+            All optimization logic is encapsulated in the optimizer object
 
-                Parameters
-                ----------
-                num_epochs : int
-                    The number times to iterate over the entire data set
+        beta_weight : float
+            Current value of the Kullback–Leibler divergence loss weight
 
-                Returns
-                -------
-                    :
-                    The calculated loss function
+        kl_weight_step : float
+            Step size to use when increasing the Kullback–Leibler divergence loss weight
 
+        kl_weight : int
+            Maximum weight of the Kullback–Leibler divergence loss
+
+        Returns
+        -------
+        list :
+            List of things to track in the main training loop
         """
         # Iterate over a data set of inputs - Begin training loop
         loss_epoch, kl_epoch, recon_epoch = 0, 0, 0
@@ -345,17 +352,21 @@ class TrainEvaluate:
         """The Validation/Test Loop:
         Iterate over the validation/test data set to check if model performance is improving
 
-
         Parameters
         ----------
-        num_epochs : int
-            The number times to iterate over the entire data set
+        data_loader : torch.utils.data.DataLoader
+            Validation/Test set DataLoader
+
+        data_n : int
+            Size of the validation/test set
+
+        beta_weight : float
+            Current value of the Kullback–Leibler divergence loss weight
 
         Returns
         -------
-            :
-            The calculated loss function
-
+        list :
+            List of validation/test related things to keep track of
         """
         # Iterate over the evaluation data set to check if model performance is improving -  Begin evaluation loop
         loss_epoch, kl_epoch, recon_epoch = 0, 0, 0
@@ -383,16 +394,16 @@ class TrainEvaluate:
         ]
 
     def train_VRNN(
-        self, num_epochs=12, learning_rate=0.001, kl_weight=1, kl_anneling_start=1
+        self, num_epochs=20, learning_rate=0.001, kl_weight=1, kl_anneling_start=1
     ):
         """Train (and validate with validation set) a deep learning VRNN model
 
         Training consists of two general steps:
-        Forward Propagation: The input data goes through each of the models functions to
-                                make a best guess at the correct output.
-        Backward Propagation: Model parameters are adjusted by traversing backwards from the output,
-                                collecting the derivatives of the error with respect to the parameters of the
-                                functions (gradients), and optimizing the parameters using gradient descent.
+        1. Forward Propagation: The input data goes through each of the models functions to
+                                make a best guess at the correct output
+        2. Backward Propagation: Model parameters are adjusted by traversing backwards from the output,
+                                 collecting the derivatives of the error with respect to the parameters of the
+                                 functions (gradients), and optimizing the parameters using gradient descent
 
         The function performs the following steps:
             1. Iterate over a data set of inputs
@@ -412,18 +423,16 @@ class TrainEvaluate:
             while large values may result in unpredictable behavior during training
 
         kl_weight : int (Defaults to 1)
-            Weight of the Kullback–Leibler divergence loss
+            Maximum weight of the Kullback–Leibler divergence loss
 
         kl_anneling_start : int (Defaults to 1)
-            Weight of the Kullback–Leibler divergence loss
             Starting value of the Kullback–Leibler divergence loss. When set to 0, the value is
             annealed to kl_weight over 10 epochs
 
         Returns
         -------
-            :
-            The calculated loss function
-
+        model : src.models.VRNN
+            The trained VRNN model
         """
         logger = logging.getLogger(__name__)  # For logging information
         validation_set = self.validation_dataloader.dataset
