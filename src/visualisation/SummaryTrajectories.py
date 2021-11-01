@@ -1,6 +1,5 @@
 from pathlib import Path
 
-import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
 import matplotlib.style as style
 import pandas as pd
