@@ -5,6 +5,7 @@ import time
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 import torch
 from torch.utils.data import DataLoader
 
@@ -186,7 +187,7 @@ class TrainEvaluate:
         # String that describes the model setup used
         batchNorm = "_batchNormTrue" if batch_norm else "_batchNormFalse"
         self.model_name = (
-            "model_VRNN"
+            "VRNN"
             + "_"
             + file_name
             + "_latent"
@@ -396,7 +397,12 @@ class TrainEvaluate:
         ]
 
     def train_VRNN(
-        self, num_epochs=20, learning_rate=0.001, kl_weight=1, kl_anneling_start=0
+        self,
+        num_epochs=30,
+        learning_rate=0.001,
+        kl_weight=1,
+        kl_anneling_start=0,
+        use_scheduler=True,
     ):
         """Train (and validate with validation set) a deep learning VRNN model
 
@@ -431,6 +437,9 @@ class TrainEvaluate:
             Starting value of the Kullback–Leibler divergence loss. When set to 0, the value is
             annealed to kl_weight over 10 epochs
 
+        use_scheduler : bool (Defaults to False)
+            When set to true a Scheduler will be introduced and used
+
         Returns
         -------
         model : src.models.VRNN
@@ -442,10 +451,14 @@ class TrainEvaluate:
         # Define the optimizer -  Optimization is the process of adjusting model parameters
         # to reduce model error in each training step.  All optimization logic is encapsulated in the optimizer object
         optimizer = torch.optim.Adam(self.model.parameters(), lr=learning_rate)
-        # Could test adding a scheduler here
-        scheduler = torch.optim.lr_scheduler.MultiStepLR(
-            optimizer, milestones=[2, 10, 20], gamma=0.3
-        )
+
+        if use_scheduler:
+            # Using a  scheduler
+            self.model_name = self.model_name + "_SchedulerTrue"
+            logger.info("Model name with scheduler: " + self.model_name)
+            scheduler = torch.optim.lr_scheduler.MultiStepLR(
+                optimizer, milestones=[2, 10, 20], gamma=0.3
+            )
 
         # Keep track of losses, KL divergence, and reconstructions
         loss_tot, kl_tot, recon_tot = [], [], []
@@ -458,8 +471,10 @@ class TrainEvaluate:
             logger.info("Model name with KL annealing: " + self.model_name)
         beta_weight = kl_anneling_start
 
-        # Annealing over 10 epochs
-        kl_weight_step = abs(kl_weight - kl_anneling_start) / (10 * self.training_n)
+        # Annealing over 10 epochs - Weight step to update after each mini batch
+        kl_weight_step = abs(kl_weight - kl_anneling_start) / (
+            10 * len(self.training_dataloader)
+        )
 
         start_time = time.time()
         for epoch in range(1, num_epochs + 1):
@@ -481,8 +496,8 @@ class TrainEvaluate:
             val_kl_tot.append(val_results[1])
             val_recon_tot.append(val_results[2])
 
-            # Could test adding a scheduler step here
-            scheduler.step()
+            if use_scheduler:
+                scheduler.step()
 
             # Plot three random validation trajectories
             datapoints = np.random.choice(self.validation_n, size=3, replace=False)
@@ -509,33 +524,34 @@ class TrainEvaluate:
                     self.model_intermediate_dir
                     / (self.model_name + "_" + str(epoch) + ".pth"),
                 )
-
-                training_curves = {
-                    "loss_tot": loss_tot,
-                    "kl_tot": kl_tot,
-                    "recon_tot": recon_tot,
-                    "val_loss_tot": val_loss_tot,
-                    "val_kl_tot": val_kl_tot,
-                    "val_recon_tot": val_recon_tot,
-                }
-                with open(
-                    self.model_intermediate_dir / (self.model_name + "_curves.pkl"),
-                    "wb",
-                ) as f:
-                    pickle.dump(training_curves, f)
+                training_curves = pd.DataFrame(
+                    {
+                        "Training_Loss": loss_tot,
+                        "Training_KL_Divergence": kl_tot,
+                        "Training_Reconstruction": recon_tot,
+                        "Validation_Loss": val_loss_tot,
+                        "Validation_KL_Divergence": val_kl_tot,
+                        "Validation_Reconstruction": val_recon_tot,
+                    }
+                )
+                training_curves.to_csv(
+                    self.model_intermediate_dir / (self.model_name + "_curves.csv"),
+                    index=False,
+                )
         logger.info("Training End ----------------------------------------")
         logger.info("--- %s seconds to train ---" % (time.time() - start_time))
 
-        training_curves = {
-            "loss_tot": loss_tot,
-            "kl_tot": kl_tot,
-            "recon_tot": recon_tot,
-            "val_loss_tot": val_loss_tot,
-            "val_kl_tot": val_kl_tot,
-            "val_recon_tot": val_recon_tot,
-        }
-
+        training_curves = pd.DataFrame(
+            {
+                "Training_Loss": loss_tot,
+                "Training_KL_Divergence": kl_tot,
+                "Training_Reconstruction": recon_tot,
+                "Validation_Loss": val_loss_tot,
+                "Validation_KL_Divergence": val_kl_tot,
+                "Validation_Reconstruction": val_recon_tot,
+            }
+        )
+        training_curves.to_csv(
+            self.model_dir / (self.model_name + "_curves.csv"), index=False
+        )
         torch.save(self.model.state_dict(), self.model_dir / (self.model_name + ".pth"))
-        with open(self.model_dir / (self.model_name + "_curves.pkl"), "wb") as f:
-            pickle.dump(training_curves, f)
-        return self.model

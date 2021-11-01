@@ -1,8 +1,7 @@
+import pickle
+
 import numpy as np
 import torch
-import os
-import sys
-import pickle
 
 from utils import plotting
 
