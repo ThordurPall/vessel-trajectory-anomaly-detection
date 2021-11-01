@@ -456,6 +456,7 @@ class TrainEvaluate:
             # Using a  scheduler
             self.model_name = self.model_name + "_SchedulerTrue"
             logger.info("Model name with scheduler: " + self.model_name)
+            # Milestones are epochs where the learning rate is decreased by a factor of 0.3
             scheduler = torch.optim.lr_scheduler.MultiStepLR(
                 optimizer, milestones=[2, 10, 20], gamma=0.3
             )
