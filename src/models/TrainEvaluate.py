@@ -78,7 +78,7 @@ class TrainEvaluate:
         self,
         file_name,
         batch_size=32,
-        num_workers=0,
+        num_workers=1,
         pin_memory=True,
         latent_dim=100,
         recurrent_dim=100,
@@ -93,7 +93,7 @@ class TrainEvaluate:
         batch_size : int (Defaults to 32)
             Size of the batch of train features and targets retured in each DataLoader iteration
 
-        num_workers : int (Defaults to 0)
+        num_workers : int (Defaults to 1)
             How many subprocesses to use for data loading (if 0 data will is loaded in the
             main process). If running on Windows and you get a BrokenPipeError, try setting to zero
 
@@ -215,24 +215,25 @@ class TrainEvaluate:
         log_qz : list
             Log probability of observing the sampled latent random variables under the approximate posterior q(z_t|x_t)
 
-        lengths :
+        lengths : Tensor
+            The actual sequence lengths
 
-        beta :
-            (Defaults to 1)
+        beta : int (Defaults to 1)
+            Weight to put on the Kullback–Leibler divergence part of the overall loss
 
         Returns
         -------
-        :
+        Tensor :
             The calculated loss function
 
-        :
-         The log probability of observing the target (reconstructions) given the generating distribution
+        Tensor :
+         The log probabilities of observing the target (reconstructions) given the generating distribution
 
-        :
-            The KL divergence
+        Tensor :
+            Tensor of Kullback–Leibler divergences for each seqeunce
 
-        :
-            The temporal mask
+        Tensor :
+            The temporal mask (Tensor of booleans) that is False after the length of the corresponding sequence
         """
         # Get the sequence length for this batch (Can vary from batch to batch)
         max_seq_len = len(log_px)
