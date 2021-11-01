@@ -82,7 +82,7 @@ class TrainEvaluate:
         pin_memory=True,
         latent_dim=100,
         recurrent_dim=100,
-        batch_norm=True,
+        batch_norm=False,
     ):
         """
         Parameters
@@ -395,7 +395,7 @@ class TrainEvaluate:
         ]
 
     def train_VRNN(
-        self, num_epochs=12, learning_rate=0.001, kl_weight=1, kl_anneling_start=1
+        self, num_epochs=20, learning_rate=0.001, kl_weight=1, kl_anneling_start=0
     ):
         """Train (and validate with validation set) a deep learning VRNN model
 
@@ -442,6 +442,9 @@ class TrainEvaluate:
         # to reduce model error in each training step.  All optimization logic is encapsulated in the optimizer object
         optimizer = torch.optim.Adam(self.model.parameters(), lr=learning_rate)
         # Could test adding a scheduler here
+        scheduler = torch.optim.lr_scheduler.MultiStepLR(
+            optimizer, milestones=[2, 10, 20], gamma=0.3
+        )
 
         # Keep track of losses, KL divergence, and reconstructions
         loss_tot, kl_tot, recon_tot = [], [], []
@@ -478,6 +481,7 @@ class TrainEvaluate:
             val_recon_tot.append(val_results[2])
 
             # Could test adding a scheduler step here
+            scheduler.step()
 
             # Plot three random validation trajectories
             datapoints = np.random.choice(self.validation_n, size=3, replace=False)
@@ -533,5 +537,4 @@ class TrainEvaluate:
         torch.save(self.model.state_dict(), self.model_dir / (self.model_name + ".pth"))
         with open(self.model_dir / (self.model_name + "_curves.pkl"), "wb") as f:
             pickle.dump(training_curves, f)
-        breakpoint()
         return self.model
