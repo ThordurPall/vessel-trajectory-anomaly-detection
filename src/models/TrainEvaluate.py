@@ -398,7 +398,7 @@ class TrainEvaluate:
 
     def train_VRNN(
         self,
-        num_epochs=30,
+        num_epochs=50,
         learning_rate=0.001,
         kl_weight=1,
         kl_anneling_start=1,
