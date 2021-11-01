@@ -1,6 +1,5 @@
 # Please note that some code in this class builds upon work done by Kristoffer Vinther Olesen (@DTU)
 import logging
-import pickle
 import time
 from pathlib import Path
 
