@@ -401,8 +401,8 @@ class TrainEvaluate:
         num_epochs=30,
         learning_rate=0.001,
         kl_weight=1,
-        kl_anneling_start=0,
-        use_scheduler=True,
+        kl_anneling_start=1,
+        use_scheduler=False,
     ):
         """Train (and validate with validation set) a deep learning VRNN model
 
