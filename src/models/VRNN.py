@@ -90,10 +90,10 @@ class VRNN(nn.Module):
 
         # Start by defining the two feature extractors that use a fully connected
         # network with one hidden layer with ReLU activation:
-        layers = [nn.Linear(self.input_shape, self.latent_shape)]
+        layers_phi_x = [nn.Linear(self.input_shape, self.latent_shape)]
         if self.batch_norm:
-            layers.append(nn.BatchNorm1d(latent_shape))
-        layers = layers + [
+            layers_phi_x.append(nn.BatchNorm1d(self.latent_shape))
+        layers_phi_x = layers_phi_x + [
             nn.ReLU(),  # Non-linear activation to introduce non-linearity in the model
             nn.Linear(
                 self.latent_shape, self.latent_shape
@@ -102,35 +102,52 @@ class VRNN(nn.Module):
 
         # 1) The feature extractor of the input which extract features from x_t
         # Use nn.Sequential as an ordered container of modules, where data is passed through in the defined orderd
-        self.phi_x = torch.nn.Sequential(*layers)
+        self.phi_x = torch.nn.Sequential(*layers_phi_x)
 
         # 2) The feature extractor of the of the latent random variables which extract features from z_t
         # Thatis, on the stochastic vectors that will be sampled
-        layers[0] = nn.Linear(self.latent_shape, self.latent_shape)
-        self.phi_z = torch.nn.Sequential(*layers)
+        layers_phi_z = [nn.Linear(self.latent_shape, self.latent_shape)]
+        if self.batch_norm:
+            layers_phi_z.append(nn.BatchNorm1d(self.latent_shape))
+        layers_phi_z = layers_phi_z + [
+            nn.ReLU(),
+            nn.Linear(self.latent_shape, self.latent_shape),
+        ]
+        self.phi_z = torch.nn.Sequential(*layers_phi_z)
 
         # The VRNN contains a VAE at every timestep. Unlike a standard VAE, the prior on the latent random
         # variable is not a standard Gaussian distribution, but the prior function can be a highly flexible function
         # such as neural networks Define it as a fully connected network with one hidden layer and ReLU activation
         # Prior network starts with the RNN (LSTM) hidden state h_{t-1}
-        layers[0] = nn.Linear(self.recurrent_shape, self.latent_shape)
+        layers_prior = [nn.Linear(self.recurrent_shape, self.latent_shape)]
+        if self.batch_norm:
+            layers_prior.append(nn.BatchNorm1d(self.latent_shape))
 
         # and returns the Gaussian location and location parameter vectors mu and sigma
         # That is, the prior on the latent random variable is an isotropic Gaussian so, it is fully
         # characterised by its mean mu and variance sigma^2 (2*[latent feature dimensions] parameters)
-        layers[-1] = nn.Linear(self.latent_shape, 2 * self.latent_shape)
-        self.prior_network = torch.nn.Sequential(*layers)
+        layers_prior = layers_prior + [
+            nn.ReLU(),
+            nn.Linear(self.latent_shape, 2 * self.latent_shape),
+        ]
+        self.prior_network = torch.nn.Sequential(*layers_prior)
 
         # Inference Network - The approximate posterior is a function of x_t and h_{t-1}. Encode the observation
         # x and RNN (LSTM) hidden state h_{y-1 }into the parameters of the posterior distribution:
         # q(z_t|x_t) = N(z_t|mu_{z,t}, diag(sigma^2_{z,t})), [mu_{z,t}, sigma_{z,t}] = phi^{enc}(phi^x(x_t), h_{t-1})
         # As before, define this network as a fully connected network with one hidden layer and ReLU activation.
         # Encoder network starts with feature extracted input x_t and the RNN (LSTM) hidden state h_{t-1}.
-        # and returns the Gaussian location and location parameter vectors mu and sigma (already added above)
-        layers[0] = nn.Linear(
-            self.latent_shape + self.recurrent_shape, self.latent_shape
-        )
-        self.encoder = torch.nn.Sequential(*layers)
+        # and returns the Gaussian location and location parameter vectors mu and sigma
+        layers_encoder = [
+            nn.Linear(self.latent_shape + self.recurrent_shape, self.latent_shape)
+        ]
+        if self.batch_norm:
+            layers_encoder.append(nn.BatchNorm1d(self.latent_shape))
+        layers_encoder = layers_encoder + [
+            nn.ReLU(),
+            nn.Linear(self.latent_shape, 2 * self.latent_shape),
+        ]
+        self.encoder = torch.nn.Sequential(*layers_encoder)
 
         # Generative Model - The generating distribution is conditioned on z_t and h_{t-1} such that it decodes
         # the latent sample z_t and the RNN (LSTM) hidden state h_{y-1 } into the parameters of the observation model.
@@ -144,13 +161,19 @@ class VRNN(nn.Module):
         #       [pi_t, mu_t, sigma_t] = [pi_{t,1}, ..., pi_{t,M}, mu_{t,1}, ..., mu_{t,M}, sigma_{t,1}, ..., sigma_{t,M}] =
         #       = phi^{dec}(phi^z(z_t), h_{t-1}) govern the form of the distribution (M+2*M*input_shape many).
         # As before, define this network as a fully connected network with one hidden layer and ReLU activation.
-        # Decoder network begins with feature extracted latent random variables z_t and RNN hidden state h_{t-1} (added above)
+        # Decoder network begins with feature extracted latent random variables z_t and RNN hidden state h_{t-1}
         # and returns the Bernoulli probability parameter vector theta (one for each binary input?) <- Assuming Bernoulli
         # Change if Gaussian generating:
-        layers[-1] = nn.Linear(
-            self.latent_shape, self.input_shape
-        )  # <- Assuming Bernoulli
-        self.decoder = torch.nn.Sequential(*layers)
+        layers_decoder = [
+            nn.Linear(self.latent_shape + self.recurrent_shape, self.latent_shape)
+        ]
+        if self.batch_norm:
+            layers_decoder.append(nn.BatchNorm1d(self.latent_shape))
+        layers_decoder = layers_decoder + [
+            nn.ReLU(),
+            nn.Linear(self.latent_shape, self.input_shape),  # <- Assuming Bernoulli
+        ]
+        self.decoder = torch.nn.Sequential(*layers_decoder)
 
         # Define an RNN that updates its hidden state with a recurrence equation that uses feature extracted x_t and z_t
         self.rnn = nn.LSTM(
