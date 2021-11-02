@@ -108,7 +108,7 @@ class TrainEvaluate:
             Recurrent latent space size in the VRNN networks
 
         batch_norm : bool (Defaults to True)
-            When set to True, natch normalization is included in the networks
+            When set to True, batch normalization is included in the networks
         """
         logger = logging.getLogger(__name__)  # For logging information
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
