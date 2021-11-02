@@ -91,7 +91,7 @@ class VRNN(nn.Module):
         # Start by defining the two feature extractors that use a fully connected
         # network with one hidden layer with ReLU activation:
         layers_phi_x = [nn.Linear(self.input_shape, self.latent_shape)]
-        if self.batch_norm:
+        if self.batch_norm:  # Add batch normalization when requested
             layers_phi_x.append(nn.BatchNorm1d(self.latent_shape))
         layers_phi_x = layers_phi_x + [
             nn.ReLU(),  # Non-linear activation to introduce non-linearity in the model
@@ -105,7 +105,7 @@ class VRNN(nn.Module):
         self.phi_x = torch.nn.Sequential(*layers_phi_x)
 
         # 2) The feature extractor of the of the latent random variables which extract features from z_t
-        # Thatis, on the stochastic vectors that will be sampled
+        # That is, on the stochastic vectors that will be sampled
         layers_phi_z = [nn.Linear(self.latent_shape, self.latent_shape)]
         if self.batch_norm:
             layers_phi_z.append(nn.BatchNorm1d(self.latent_shape))
@@ -117,13 +117,13 @@ class VRNN(nn.Module):
 
         # The VRNN contains a VAE at every timestep. Unlike a standard VAE, the prior on the latent random
         # variable is not a standard Gaussian distribution, but the prior function can be a highly flexible function
-        # such as neural networks Define it as a fully connected network with one hidden layer and ReLU activation
+        # such as neural networks. Define it here as a fully connected network with one hidden layer and ReLU activation
         # Prior network starts with the RNN (LSTM) hidden state h_{t-1}
         layers_prior = [nn.Linear(self.recurrent_shape, self.latent_shape)]
         if self.batch_norm:
             layers_prior.append(nn.BatchNorm1d(self.latent_shape))
 
-        # and returns the Gaussian location and location parameter vectors mu and sigma
+        # and returns the Gaussian location and scale parameter vectors mu and sigma.
         # That is, the prior on the latent random variable is an isotropic Gaussian so, it is fully
         # characterised by its mean mu and variance sigma^2 (2*[latent feature dimensions] parameters)
         layers_prior = layers_prior + [
@@ -136,8 +136,8 @@ class VRNN(nn.Module):
         # x and RNN (LSTM) hidden state h_{y-1 }into the parameters of the posterior distribution:
         # q(z_t|x_t) = N(z_t|mu_{z,t}, diag(sigma^2_{z,t})), [mu_{z,t}, sigma_{z,t}] = phi^{enc}(phi^x(x_t), h_{t-1})
         # As before, define this network as a fully connected network with one hidden layer and ReLU activation.
-        # Encoder network starts with feature extracted input x_t and the RNN (LSTM) hidden state h_{t-1}.
-        # and returns the Gaussian location and location parameter vectors mu and sigma
+        # Encoder network starts with feature extracted input x_t and the RNN (LSTM) hidden state h_{t-1}
+        # and returns the Gaussian location and scale parameter vectors mu and sigma
         layers_encoder = [
             nn.Linear(self.latent_shape + self.recurrent_shape, self.latent_shape)
         ]
