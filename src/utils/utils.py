@@ -110,7 +110,12 @@ def curves_df(
 
 # Define a function to plot the loss, KL divergence, and Reconstruction log probabilities side by side
 def plot_curves(
-    df, hue="Data set type", hue_order=["Training", "Validation"], title=None
+    df,
+    hue="Data set type",
+    hue_order=["Training", "Validation"],
+    title=None,
+    xlims=None,
+    ylims=None,
 ):
     _, ax = plt.subplots(1, 3, figsize=(18, 5))
     x = "Epoch"
@@ -127,6 +132,17 @@ def plot_curves(
         ax=ax[2],
     )
     sns.despine()
+
+    if xlims is not None:
+        ax[0].set(xlim=xlims[0])
+        ax[1].set(xlim=xlims[1])
+        ax[2].set(xlim=xlims[2])
+
+    if ylims is not None:
+        ax[0].set(ylim=ylims[0])
+        ax[1].set(ylim=ylims[1])
+        ax[2].set(ylim=ylims[2])
+
     if title is not None:
         plt.suptitle(title)
     plt.show()
