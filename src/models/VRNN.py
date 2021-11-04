@@ -338,8 +338,8 @@ class VRNN(nn.Module):
         targets = targets.permute(1, 0, 2)
 
         # Initialize LSTM output, hidden state and cell state (for t = 0) - The dimensions are batch_size X recurrent_shape
-        # output_t = torch.zeros(batch_size, self.recurrent_shape, device=self.device)
-        h_t = torch.zeros(batch_size, self.recurrent_shape, device=self.device)
+        output_t = torch.zeros(batch_size, self.recurrent_shape, device=self.device)
+        h_t = torch.zeros(1, batch_size, self.recurrent_shape, device=self.device)
         c_t = torch.zeros(1, batch_size, self.recurrent_shape, device=self.device)
 
         # Initialize variables to keep track of
@@ -362,13 +362,13 @@ class VRNN(nn.Module):
 
             # Create the prior distribution p(z_t)
             # pz = self._prior(out) #out is batch X latent
-            pz_t = self.prior(h_t)  # h_t at this point is really h_{t-1}
+            pz_t = self.prior(output_t)  # output_t at this point is really output_{t-1}
 
             # Create the approximate posterior q(z_t|x_t)
             # qz = self.posterior(out, x_hat, prior_mu=pz.mu)
             qz_t = self.posterior(
-                h_t, x_t_features
-            )  # h_t at this point is still h_{t-1}
+                output_t, x_t_features
+            )  # output_t at this point is still output_{t-1}
 
             # Sample and embed z_t from the inference approximate posterior q(z_t|x_t)
             z_t = (
@@ -382,20 +382,20 @@ class VRNN(nn.Module):
 
             # Create the observation model (generating distribution) p(x_t|z_t)
             px_t = self.generative(
-                z_features, h_t
-            )  # h_t at this point is still h_{t-1}
+                z_features, output_t
+            )  # output_t at this point is still output_{t-1}
 
-            # Update the recurrence - Update hidden state h_{t-1} to h_t
+            # Update the recurrence - Update hidden state output_{t-1} to output_t
             rnn_input_t = torch.cat([x_t_features, z_features], dim=1)
             rnn_input_t = rnn_input_t.unsqueeze(
                 0
             )  # The dimensions are 1 (seq_len) X batch_size X 2*latent_dim
             output_t, (h_t, c_t) = self.rnn(
-                rnn_input_t, (h_t.unsqueeze(0), c_t)
-            )  # Update the LSTM. h_t is 1 X batch_size X latent_dim
-            h_t = h_t.squeeze(
+                rnn_input_t, (h_t, c_t)
+            )  # Update the LSTM. output_t is 1 X batch_size X latent_dim
+            output_t = output_t.squeeze(
                 axis=0
-            )  # The h_t dimensions are now batch_size X recurrent_shape
+            )  # The output_t dimensions are now batch_size X recurrent_shape
 
             # Change if Gaussian generating:
             # Use the created distributions to evaluate the log probabilities that will be used in the loss function
@@ -419,7 +419,7 @@ class VRNN(nn.Module):
             ):  # Save the logits from the Bernoulli distribution - To look at that distribution
                 logits[t, :, :] = px_t.logits
             if hs is not None:  # Save the hidden state from the LSTM cells
-                hs[t, :, :] = h_t
+                hs[t, :, :] = output_t
             if zs is not None:
                 zs[t, :, :] = z_t  # Save the sampled latent random variables
             if (
