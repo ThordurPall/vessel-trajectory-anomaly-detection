@@ -58,6 +58,41 @@ class TrainEvaluate:
     model_name : str
         String that indentifies the current model setup
 
+    evaluate_on_fishing_vessles : bool
+        When true, validation and testing will also be done on a data set
+        containing only fishing vessel using the same dates and ROI
+
+    evaluate_on_new_fishing_vessles : bool
+        When true, validation and testing will also be done on a data set
+        containing only fishing vessel using different dates and ROI
+
+    fishing_validation_n : int
+        Size of the fishing vessels only validation set
+
+    fishing_new_validation_n : int
+        Size of the new fishing vessels only validation set
+
+    fishing_test_n : int
+        Size of the fishing vessels only test set
+
+    fishing_new_test_n : int
+        Size of the new fishing vessels only test set
+
+    validation_dataloader : torch.utils.data.DataLoader
+        Validation set DataLoader
+
+    fishing_validation_dataloader : torch.utils.data.DataLoader
+        Fishing vessel only validation set DataLoader
+
+    fishing_new_validation_dataloader : torch.utils.data.DataLoader
+        New fishing vessel only validation set DataLoader
+
+    fishing_test_dataloader : torch.utils.data.DataLoader
+        Fishing vessel only test set DataLoader
+
+    fishing_new_test_dataloader : torch.utils.data.DataLoader
+        New fishing vessel only test set DataLoader
+
     Methods
     -------
     loss_function(log_px, log_pz, log_qz, lengths, beta)
@@ -83,6 +118,9 @@ class TrainEvaluate:
         latent_dim=100,
         recurrent_dim=100,
         batch_norm=False,
+        is_trained=False,
+        fishing_file=None,
+        fishing_new_file=None,
     ):
         """
         Parameters
@@ -107,8 +145,17 @@ class TrainEvaluate:
         recurrent_dim : int (Defaults to 100)
             Recurrent latent space size in the VRNN networks
 
-        batch_norm : bool (Defaults to True)
+        batch_norm : bool (Defaults to False)
             When set to True, batch normalization is included in the networks
+
+        is_trained : bool (Defaults to False)
+            If True the model has already been trained and will be loaded from the .pth file
+
+        fishing_file : str (Defaults to None)
+            Name of the main part of the fishing vessel only data file for the same ROI and dates as in file_name
+
+        fishing_new_file : str (Defaults to None)
+            Name of the main part of a new fishing vessel only data file with a different ROI or dates (or both)
         """
         logger = logging.getLogger(__name__)  # For logging information
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -172,6 +219,76 @@ class TrainEvaluate:
             collate_fn=dataset_utils.PadSequence,
         )
 
+        # Create fishing vessel only valdiation and test sets that have the same dates and ROI when requested
+        self.evaluate_on_fishing_vessles = False
+        if fishing_file is not None:
+            self.evaluate_on_fishing_vessles = True
+            logger.info(
+                "Initialize fishing vessel only valdiation and test sets that have the same dates and ROI"
+            )
+            fishing_validation_set = AISDiscreteRepresentation(
+                fishing_file, self.train_mean, validation=True
+            )
+            self.fishing_validation_n = len(fishing_validation_set)
+            fishing_test_set = AISDiscreteRepresentation(
+                fishing_file, self.train_mean, validation=False
+            )
+            self.fishing_test_n = len(fishing_test_set)
+
+            # Define the validation and test DataLoaders
+            logger.info("Initialize fishing vessel only val/test DataLoaders")
+            self.fishing_validation_dataloader = DataLoader(
+                fishing_validation_set,
+                batch_size=batch_size,
+                shuffle=False,
+                pin_memory=pin_memory,
+                num_workers=num_workers,
+                collate_fn=dataset_utils.PadSequence,
+            )
+            self.fishing_test_dataloader = DataLoader(
+                fishing_test_set,
+                batch_size=batch_size,
+                shuffle=False,
+                pin_memory=pin_memory,
+                num_workers=num_workers,
+                collate_fn=dataset_utils.PadSequence,
+            )
+
+        # Create fishing vessel only valdiation and test sets that have different dates or ROI when requested
+        self.evaluate_on_new_fishing_vessles = False
+        if fishing_new_file is not None:
+            self.evaluate_on_new_fishing_vessles = True
+            logger.info(
+                "Initialize fishing vessel only valdiation and test sets that have different dates or ROI"
+            )
+            fishing_new_validation_set = AISDiscreteRepresentation(
+                fishing_new_file, self.train_mean, validation=True
+            )
+            self.fishing_new_validation_n = len(fishing_new_validation_set)
+            fishing_new_test_set = AISDiscreteRepresentation(
+                fishing_new_file, self.train_mean, validation=False
+            )
+            self.fishing_new_test_n = len(fishing_new_test_set)
+
+            # Define the validation and test DataLoaders
+            logger.info("Initialize new fishing vessel only val/test DataLoaders")
+            self.fishing_new_validation_dataloader = DataLoader(
+                fishing_new_validation_set,
+                batch_size=batch_size,
+                shuffle=False,
+                pin_memory=pin_memory,
+                num_workers=num_workers,
+                collate_fn=dataset_utils.PadSequence,
+            )
+            self.fishing_new_test_dataloader = DataLoader(
+                fishing_new_test_set,
+                batch_size=batch_size,
+                shuffle=False,
+                pin_memory=pin_memory,
+                num_workers=num_workers,
+                collate_fn=dataset_utils.PadSequence,
+            )
+
         # Define the neural network model that has some learnable parameters (or weights)
         # Initialize the variational recurrent neural network
         self.model = VRNN.VRNN(
@@ -196,6 +313,13 @@ class TrainEvaluate:
             + batchNorm
         )
         logger.info("Model name: " + self.model_name)
+
+        if is_trained:
+            # Load the previously trained model
+            model_path = self.model_dir / (self.model_name + ".pth")
+            logger.info("Loading previously trained model: " + model_path)
+            self.model.load_state_dict(torch.load(model_path, map_location=self.device))
+            self.model.to(self.device)
 
     def loss_function(self, log_px, log_pz, log_qz, lengths, beta=1):
         """Computes the loss function
@@ -395,6 +519,73 @@ class TrainEvaluate:
             recon_epoch / data_n,
         ]
 
+    def save_training_curves(
+        self,
+        val_loss,
+        val_kl,
+        val_recon,
+        dir,
+        loss=None,
+        kl=None,
+        recon=None,
+        name_prefix="",
+    ):
+        """Stores the training and validation learning curves as a .csv file
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        val_loss : list
+            Validation loss at each epoch
+
+        val_kl : list
+            Validation Kullback–Leibler divergences at each epoch
+
+        val_recon : list
+            Validation log probabilities of observing the target (reconstructions)
+
+        dir : pathlib.WindowsPath
+            The directory to store the training curves
+
+        loss : list (Defaults to None)
+            Training loss at each epoch
+
+        kl : list (Defaults to None)
+            Training Kullback–Leibler divergences at each epoch
+
+        recon : list (Defaults to None)
+            Training log probabilities of observing the target (reconstructions)
+
+        name_prefix : str (Defaults to empty string)
+            String that comes in front of the saved file name
+        """
+        # Check if both the training and validation curves should be stored or only validation
+        if loss is not None and kl is not None and recon is not None:
+            training_curves = pd.DataFrame(
+                {
+                    "Training_Loss": loss,
+                    "Training_KL_Divergence": kl,
+                    "Training_Reconstruction": recon,
+                    "Validation_Loss": val_loss,
+                    "Validation_KL_Divergence": val_kl,
+                    "Validation_Reconstruction": val_recon,
+                }
+            )
+        else:
+            training_curves = pd.DataFrame(
+                {
+                    "Validation_Loss": val_loss,
+                    "Validation_KL_Divergence": val_kl,
+                    "Validation_Reconstruction": val_recon,
+                }
+            )
+        training_curves.to_csv(
+            dir / (name_prefix + self.model_name + "_curves.csv"),
+            index=False,
+        )
+
     def train_VRNN(
         self,
         num_epochs=50,
@@ -464,6 +655,16 @@ class TrainEvaluate:
         loss_tot, kl_tot, recon_tot = [], [], []
         val_loss_tot, val_kl_tot, val_recon_tot = [], [], []
 
+        if self.evaluate_on_fishing_vessles:
+            # Also validate on fishing vessels only and keep track of those values
+            fish_val_loss_tot, fish_val_kl_tot, fish_val_recon_tot = [], [], []
+
+        if self.evaluate_on_new_fishing_vessles:
+            # Also validate on new (different ROI/dates) fishing vessels only and keep track of those values
+            fish_new_val_loss_tot = []
+            fish_new_val_kl_tot = []
+            fish_new_val_recon_tot = []
+
         # Variables for KL anneling (when included) - By default KL annealing is not introduced
         if kl_anneling_start != 1:
             # Using KL annealing
@@ -496,6 +697,30 @@ class TrainEvaluate:
             val_kl_tot.append(val_results[1])
             val_recon_tot.append(val_results[2])
 
+            if self.evaluate_on_fishing_vessles:
+                # Also validate on a data set consisting only of fishing vessels
+                logger.info("Run the validation loop - Fishing vessels only")
+                val_results = self.evaluate_loop(
+                    self.fishing_validation_dataloader,
+                    self.fishing_validation_n,
+                    beta_weight,
+                )
+                fish_val_loss_tot.append(val_results[0])
+                fish_val_kl_tot.append(val_results[1])
+                fish_val_recon_tot.append(val_results[2])
+
+            if self.evaluate_on_new_fishing_vessles:
+                # Also validate on a data set consisting only of fishing vessels
+                logger.info("Run the validation loop - NEW Fishing vessels only")
+                val_results = self.evaluate_loop(
+                    self.fishing_new_validation_dataloader,
+                    self.fishing_new_validation_n,
+                    beta_weight,
+                )
+                fish_new_val_loss_tot.append(val_results[0])
+                fish_new_val_kl_tot.append(val_results[1])
+                fish_new_val_recon_tot.append(val_results[2])
+
             if use_scheduler:
                 scheduler.step()
 
@@ -519,39 +744,56 @@ class TrainEvaluate:
 
             # Save the model every 10 epochs
             if epoch % 10 == 0:
+                # Save the current model version
                 torch.save(
                     self.model.state_dict(),
                     self.model_intermediate_dir
                     / (self.model_name + "_" + str(epoch) + ".pth"),
                 )
-                training_curves = pd.DataFrame(
-                    {
-                        "Training_Loss": loss_tot,
-                        "Training_KL_Divergence": kl_tot,
-                        "Training_Reconstruction": recon_tot,
-                        "Validation_Loss": val_loss_tot,
-                        "Validation_KL_Divergence": val_kl_tot,
-                        "Validation_Reconstruction": val_recon_tot,
-                    }
-                )
-                training_curves.to_csv(
-                    self.model_intermediate_dir / (self.model_name + "_curves.csv"),
-                    index=False,
+
+                # Store the learning curves as a .csv file
+                self.save_training_curves(
+                    val_loss=val_loss_tot,
+                    val_kl=val_kl_tot,
+                    val_recon=val_recon_tot,
+                    dir=self.model_intermediate_dir,
+                    loss=loss_tot,
+                    kl=kl_tot,
+                    recon=recon_tot,
                 )
         logger.info("Training End ----------------------------------------")
         logger.info("--- %s seconds to train ---" % (time.time() - start_time))
 
-        training_curves = pd.DataFrame(
-            {
-                "Training_Loss": loss_tot,
-                "Training_KL_Divergence": kl_tot,
-                "Training_Reconstruction": recon_tot,
-                "Validation_Loss": val_loss_tot,
-                "Validation_KL_Divergence": val_kl_tot,
-                "Validation_Reconstruction": val_recon_tot,
-            }
+        # Save the training and validation learning curves
+        self.save_training_curves(
+            val_loss=val_loss_tot,
+            val_kl=val_kl_tot,
+            val_recon=val_recon_tot,
+            dir=self.model_dir,
+            loss=loss_tot,
+            kl=kl_tot,
+            recon=recon_tot,
         )
-        training_curves.to_csv(
-            self.model_dir / (self.model_name + "_curves.csv"), index=False
-        )
+
+        if self.evaluate_on_fishing_vessles:
+            # Also save the validation learning curve for fishing vessels only
+            self.save_training_curves(
+                val_loss=fish_val_loss_tot,
+                val_kl=fish_val_kl_tot,
+                val_recon=fish_val_recon_tot,
+                dir=self.model_dir,
+                name_prefix="Fishing_vessels_only",
+            )
+
+        if self.evaluate_on_new_fishing_vessles:
+            # Also save the validation learning curve for the new fishing vessels only
+            self.save_training_curves(
+                val_loss=fish_new_val_loss_tot,
+                val_kl=fish_new_val_kl_tot,
+                val_recon=fish_new_val_recon_tot,
+                dir=self.model_dir,
+                name_prefix="New_Fishing_vessels_only",
+            )
+
+        # Save the final (trained) model
         torch.save(self.model.state_dict(), self.model_dir / (self.model_name + ".pth"))
