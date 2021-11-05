@@ -78,9 +78,6 @@ class TrainEvaluate:
     fishing_new_test_n : int
         Size of the new fishing vessels only test set
 
-    validation_dataloader : torch.utils.data.DataLoader
-        Validation set DataLoader
-
     fishing_validation_dataloader : torch.utils.data.DataLoader
         Fishing vessel only validation set DataLoader
 
