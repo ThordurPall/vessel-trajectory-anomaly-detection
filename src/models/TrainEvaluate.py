@@ -779,7 +779,7 @@ class TrainEvaluate:
                 val_kl=fish_val_kl_tot,
                 val_recon=fish_val_recon_tot,
                 dir=self.model_dir,
-                name_prefix="Fishing_vessels_only",
+                name_prefix="Fishing_vessels_only_",
             )
 
         if self.evaluate_on_new_fishing_vessles:
@@ -789,7 +789,7 @@ class TrainEvaluate:
                 val_kl=fish_new_val_kl_tot,
                 val_recon=fish_new_val_recon_tot,
                 dir=self.model_dir,
-                name_prefix="New_Fishing_vessels_only",
+                name_prefix="New_Fishing_vessels_only_",
             )
 
         # Save the final (trained) model
