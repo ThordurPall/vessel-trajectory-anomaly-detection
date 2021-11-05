@@ -86,7 +86,13 @@ class ProcessData:
         self.processed_data_dir.mkdir(parents=True, exist_ok=True)
 
     def process_into_trajectories(
-        self, min_track_length, max_track_Length, resample_frequency, split_track_length
+        self,
+        min_track_length,
+        max_track_Length,
+        resample_frequency,
+        split_track_length,
+        train_proportion=0.8,
+        test_proportion=0.1,
     ):
         """Process raw data into trajectories
 
@@ -107,6 +113,13 @@ class ProcessData:
         split_track_length : int
             Split tracks into two trajectories when the time difference between AIS update messages
             is greater than split_track_length seconds. So, then the trajectory has ended and new one started
+
+        train_proportion : float (Defaults to 0.8)
+            Proportion (0.0 <= train_proportion <= 1.0) of data to use for training
+
+        test_proportion : float (Defaults to 0.1)
+            Proportion (0.0 <= test_proportion <= 1.0) of data to use for testing.
+            The rest (1.0 - train_proportion - test_proportion) is used for validation
 
         Returns
         -------
@@ -165,7 +178,7 @@ class ProcessData:
         )
 
         # With the trajectories, now randomly make the train, validation and test set splits
-        n = len(trajectories["indicies"]) // 5  # 80% for training
+        n = int(len(trajectories["indicies"]) * (1.0 - train_proportion))
         val_test_indices = np.random.choice(
             trajectories["indicies"], size=n, replace=False
         )
@@ -173,8 +186,8 @@ class ProcessData:
             index for index in trajectories["indicies"] if index not in val_test_indices
         ]
 
-        # Split the other 20% equally into validation and test sets
-        n = len(val_test_indices) // 2  # 10% validation and 10% test
+        # Split the rest of the data set into validation and test sets
+        n = int(len(trajectories["indicies"]) * test_proportion)
         test_indices = list(np.random.choice(val_test_indices, size=n, replace=False))
         trajectories["testIndicies"] = test_indices
         trajectories["valIndicies"] = [
