@@ -134,3 +134,36 @@ class SummaryModels:
         sns.set_theme(style="whitegrid")
         sns.set_context("paper", rc={"lines.linewidth": 3.0})
         style.use("seaborn-colorblind")
+
+    # Define a function to read in the training/validation curves for a specified setup
+
+
+def load_curves_df(self, setup_type, validation_only=False):
+    """Read learning curves for the current setup
+
+    Parameters
+    ----------
+    setup_type : str
+        Model setup used. This will be the value in the 'Setup type' column
+
+    validation_only : bool (Defaults to False)
+        When True, only the validation curves are returned
+    """
+    curves_file = self.model_name + "_curves.csv"
+    df = pd.read_csv(self.model_dir / curves_file)
+    df_val = df.iloc[:, 3:6].copy()
+    df_val.columns = ["Loss", "KL divergence", "Reconstruction log probabilities"]
+    df_val["Data set type"] = "Validation"
+    df_val["Epoch"] = df_val.index + 1
+
+    if not validation_only:
+        df_train = df.iloc[:, 0:3].copy()
+        df_train.columns = ["Loss", "KL divergence", "Reconstruction log probabilities"]
+        df_train["Data set type"] = "Training"
+        df_train["Epoch"] = df_val.index + 1
+        df = pd.concat([df_train, df_val])
+    else:
+        df = df_val
+    df["Setup type"] = setup_type
+    df.reset_index(drop=True, inplace=True)
+    return df
