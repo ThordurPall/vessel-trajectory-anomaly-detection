@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 
+
 # Utils file for useful functions used throughout the code base
 def add_plot_extras(
     ax,

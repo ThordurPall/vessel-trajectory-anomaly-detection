@@ -42,6 +42,22 @@ def convertShipTypeToLabel(shipType):
     return choices.get(shipType, 8)
 
 
+def convertShipLabelToType(shipLabel):
+    # Convert ship numerical label to its type - Mainly for classification and plotting
+    choices = {
+        0: "Cargo",
+        1: "Tanker",
+        2: "Fishing",
+        3: "Passenger",
+        4: "Sailing",
+        5: "Pleasure",
+        6: "Military",
+        7: "HSC",
+        8: "Other",
+    }
+    return choices.get(shipLabel, "Other")
+
+
 def createDenseVector(update, lat_edges, lon_edges, speed_edges, course_edges):
     # On an update level (for a single update) and not an entire trajectory
     # Four hot encoding on indivudual update attributes. Looks at the edges of

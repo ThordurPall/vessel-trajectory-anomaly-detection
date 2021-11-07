@@ -471,7 +471,7 @@ class TrainEvaluate:
             beta_weight,
         ]
 
-    def evaluate_loop(self, data_loader, data_n, beta_weight):
+    def evaluate_loop(self, data_loader, data_n, beta_weight=1):
         """The Validation/Test Loop:
         Iterate over the validation/test data set to check if model performance is improving
 
@@ -483,18 +483,20 @@ class TrainEvaluate:
         data_n : int
             Size of the validation/test set
 
-        beta_weight : float
+        beta_weight : float (Default to 1)
             Current value of the Kullback–Leibler divergence loss weight
 
         Returns
         -------
         list :
-            List of validation/test related things to keep track of
+            List of validation/test related things to keep track of.
+            Also returns reconstruction log probability, track lengths and vessel types
         """
         # Iterate over the evaluation data set to check if model performance is improving -  Begin evaluation loop
         loss_epoch, kl_epoch, recon_epoch = 0, 0, 0
+        all_log_px, all_lengths, all_ship_types = [], [], []
         self.model.eval()
-        for _, (_, _, _, lengths, inputs, targets) in enumerate(data_loader):
+        for _, (_, _, ship_types, lengths, inputs, targets) in enumerate(data_loader):
             inputs = inputs.to(self.device)
             targets = targets.to(self.device)
             lengths = lengths.to(self.device)
@@ -510,10 +512,19 @@ class TrainEvaluate:
             loss_epoch += loss.item() * len(lengths)
             kl_epoch += torch.sum(kl / lengths).item()
             recon_epoch += torch.sum(log_px / lengths).item()
+            all_log_px = all_log_px + log_px.tolist()
+            all_lengths = all_lengths + lengths.tolist()
+            all_ship_types = all_ship_types + [
+                dataset_utils.convertShipLabelToType(ship_type.item())
+                for ship_type in ship_types
+            ]
         return [
             loss_epoch / data_n,
             kl_epoch / data_n,
             recon_epoch / data_n,
+            all_log_px,
+            all_lengths,
+            all_ship_types,
         ]
 
     def save_training_curves(

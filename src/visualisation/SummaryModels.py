@@ -5,6 +5,9 @@ import matplotlib.style as style
 import pandas as pd
 import seaborn as sns
 
+import src.utils.utils as utils
+from src.models.TrainEvaluate import TrainEvaluate
+
 
 class SummaryModels:
     """
@@ -15,6 +18,9 @@ class SummaryModels:
 
     Attributes
     ----------
+    file_name : str
+            Name of the main part of the file where the results are saved
+
     model_dir : pathlib.WindowsPath
         Directory where the model training results are located
 
@@ -49,6 +55,12 @@ class SummaryModels:
 
     plot_curves(df, hue, hue_order, title, file_name, xlims, ylims, fig_size)
         Plots the loss, KL divergence, and reconstruction log probabilities side by side
+
+    run_evaluation(validation=True)
+        Run evaluation loop and return the data
+
+    hist_stacked_plot(data, type, x, y, file_name, xlabel, ylabel, hue, hue_order, xlim, ylim, print_summary_stats)
+        Creates a histogram or stacked histogram plot
     """
 
     def __init__(
@@ -103,6 +115,7 @@ class SummaryModels:
         """
 
         super().__init__()
+        self.file_name = file_name
         self.save_figures = save_figures
         self.plot_figures = plot_figures
         self.fig_size = fig_size
@@ -153,6 +166,11 @@ class SummaryModels:
 
         validation_only : bool (Defaults to False)
             When True, only the validation curves are returned
+
+        Returns
+        -------
+        pandas.DataFrame
+            Data frame containing the learning curves
         """
         curves_file = self.model_name + "_curves.csv"
         df = pd.read_csv(self.model_dir / curves_file)
@@ -307,3 +325,136 @@ class SummaryModels:
 
         if self.plot_figures:
             plt.show()
+
+    def run_evaluation(
+        self,
+        validation=True,
+    ):
+        """Run evaluation loop and return the data
+
+        Parameters
+        ----------
+        validation : bool (Defaults to True)
+            When True, the validation DataLoader is used, but otherwise the test loader is used
+
+        Returns
+        -------
+        dict
+            Dictionary containing the evaluation information
+        """
+        train_evaluate = TrainEvaluate(self.file_name, is_trained=True)
+        if validation:
+            eval_results = train_evaluate.evaluate_loop(
+                train_evaluate.validation_dataloader, train_evaluate.validation_n
+            )
+        else:
+            eval_results = train_evaluate.evaluate_loop(
+                train_evaluate.test_dataloader, train_evaluate.test_n
+            )
+        data = pd.DataFrame(
+            {
+                "Reconstruction log probability": eval_results[3],
+                "Length": eval_results[4],
+                "Ship type": eval_results[5],
+            }
+        )
+        data["Equally weighted reconstruction log probability"] = (
+            data["Reconstruction log probability"] / data["Length"]
+        )
+        return {
+            "EquallyWeightedMeanLoss": eval_results[0],
+            "EquallyWeightedMeanKLDivergence": eval_results[1],
+            "EquallyWeightedMeanReconstructionLogProbability": eval_results[2],
+            "TrajectoryLevelData": data,
+        }
+
+    def hist_stacked_plot(
+        self,
+        data,
+        type,
+        x,
+        y=None,
+        file_name=None,
+        xlabel=None,
+        ylabel=None,
+        hue=None,
+        hue_order=None,
+        xlim=None,
+        ylim=None,
+        print_summary_stats=False,
+    ):
+        """Creates a histogram or stacked histogram plot
+
+        Parameters
+        ----------
+        data : int
+            Data set to plot
+
+        type : str
+            Type of figure to plot (either "Histogram" or "Stacked")
+
+        x : str
+            Variable to plot on the x-axis
+
+        y : str (Defaults to None)
+            Variable to plot on the y-axis
+
+        file_name : str (Defaults to None)
+            File name where the figure will be saved
+
+        xlabel : str (Defaults to None)
+            x label text to put on the plot
+
+        ylabel : str (Defaults to None)
+            y label text to put on the plot
+
+        hue : str (Defaults to None)
+            Variable that determines the color of plot elements
+
+        hue_order : list (Defaults to None)
+            Specify the order of processing and plotting for categorical levels of hue
+
+        xlim : list (Defaults to None)
+            Limit of the x-axis
+
+        ylim : list (Defaults to None)
+            Limit of the y-axis
+
+        print_summary_stats : bool
+            When True, summary statistics will also be printed
+        """
+        sns.set_theme(style="whitegrid")
+        sns.set_context("paper", rc={"lines.linewidth": 3.0})
+        style.use("seaborn-colorblind")
+
+        if type == "Histogram":
+            ax = sns.histplot(x=x, hue=hue, hue_order=hue_order, data=data)
+
+        elif type == "Stacked":
+            ax = sns.histplot(
+                x=x, hue=hue, multiple="stack", hue_order=hue_order, data=data
+            )
+        else:
+            print("Currently only implmented for 'Histogram' and 'Stacked'")
+
+        file_path = None
+        if file_name is not None:
+            file_path = self.explore_fig_dir / (file_name + ".pdf")
+        utils.add_plot_extras(
+            ax,
+            self.save_figures,
+            self.plot_figures,
+            file_path,
+            xlabel,
+            ylabel,
+            xlim,
+            ylim,
+        )
+        if print_summary_stats:
+            print(
+                f"Mean {x}: {data[x].mean()}",
+                f"Median {x}: {data[x].median()}" "",
+                "{x} statistics by ship type: " "",
+                data.groupby("Ship type")[x].describe(),
+                sep="\n",
+            )
