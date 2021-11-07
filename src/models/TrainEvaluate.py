@@ -314,7 +314,7 @@ class TrainEvaluate:
         if is_trained:
             # Load the previously trained model
             model_path = self.model_dir / (self.model_name + ".pth")
-            logger.info("Loading previously trained model: " + model_path)
+            logger.info("Loading previously trained model: " + str(model_path))
             self.model.load_state_dict(torch.load(model_path, map_location=self.device))
             self.model.to(self.device)
 
