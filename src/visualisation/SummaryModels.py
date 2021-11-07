@@ -5,8 +5,6 @@ import matplotlib.style as style
 import pandas as pd
 import seaborn as sns
 
-import src.utils.utils as utils
-
 
 class SummaryModels:
     """
