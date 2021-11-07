@@ -63,6 +63,7 @@ class SummaryModels:
         batch_norm=False,
         scheduler=False,
         kl_annealing=False,
+        model_prefix="",
     ):
         """
         Parameters
@@ -96,6 +97,9 @@ class SummaryModels:
 
         kl_annealing : bool (Defaults to False)
             When set to true a Kullback–Leibler annealing was done
+
+        model_prefix : str (Defaults to empty string '')
+            Model name prefix (e.g. 'Fishing_vessels_only_')
         """
 
         super().__init__()
@@ -119,7 +123,8 @@ class SummaryModels:
         Scheduler = "_SchedulerTrue" if scheduler else ""
         KLAnneal = "_KLTrue" if kl_annealing else ""
         self.model_name = (
-            model
+            model_prefix
+            + model
             + "_"
             + file_name
             + "_latent"
@@ -151,7 +156,10 @@ class SummaryModels:
         """
         curves_file = self.model_name + "_curves.csv"
         df = pd.read_csv(self.model_dir / curves_file)
-        df_val = df.iloc[:, 3:6].copy()
+        if validation_only:
+            df_val = df.iloc[:, 0:3].copy()
+        else:
+            df_val = df.iloc[:, 3:6].copy()
         df_val.columns = ["Loss", "KL divergence", "Reconstruction log probabilities"]
         df_val["Data set type"] = "Validation"
         df_val["Epoch"] = df_val.index + 1
