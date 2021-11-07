@@ -41,10 +41,14 @@ class SummaryModels:
 
     Methods
     -------
-    xyz(resample_frequency)
-        xyz
+    load_curves_df(setup_type, validation_only)
+        Read in the training/validation curves for the current setup
 
+    plot_curves_large(df, hue, hue_order, title)
+        Plot the loss, KL divergence, and reconstruction log probabilities one at a time (large)
 
+    plot_curves(df, hue, hue_order, title, file_name, xlims, ylims, fig_size)
+        Plots the loss, KL divergence, and reconstruction log probabilities side by side
     """
 
     def __init__(
@@ -134,10 +138,8 @@ class SummaryModels:
         style.use("seaborn-colorblind")
         sns.set_style("ticks")
 
-    # Define a function to read in the training/validation curves for a specified setup
-
     def load_curves_df(self, setup_type, validation_only=False):
-        """Read learning curves for the current setup
+        """Read in the training/validation curves for the current setup
 
         Parameters
         ----------
