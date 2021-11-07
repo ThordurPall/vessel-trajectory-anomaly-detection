@@ -453,8 +453,8 @@ class SummaryModels:
         if print_summary_stats:
             print(
                 f"Mean {x}: {data[x].mean()}",
-                f"Median {x}: {data[x].median()}" "",
-                "{x} statistics by ship type: " "",
+                f"Median {x}: {data[x].median()}",
+                f"{x} statistics by ship type: ",
                 data.groupby("Ship type")[x].describe(),
                 sep="\n",
             )
