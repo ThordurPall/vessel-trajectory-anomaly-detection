@@ -11,6 +11,7 @@ def add_plot_extras(
     ylabel=None,
     xlim=None,
     ylim=None,
+    title=None,
 ):
     """Add the requested plot extras
 
@@ -39,6 +40,9 @@ def add_plot_extras(
 
     ylim : list (Defaults to None)
         Limit of the y-axis
+
+    title : str (Defaults to None)
+        The figure title
     """
     # Add labels when requested
     if xlabel is not None:
@@ -51,6 +55,10 @@ def add_plot_extras(
         ax.set_xlim(xlim[0], xlim[1])
     if ylim is not None:
         ax.set_ylim(ylim[0], ylim[1])
+
+    # Add title when requested
+    if title is not None:
+        ax.set_title(title)
 
     # Check whether to save or plot the figure
     if save_figure & (file_name_path is not None):

@@ -329,6 +329,7 @@ class SummaryModels:
     def run_evaluation(
         self,
         validation=True,
+        setup_type=None,
     ):
         """Run evaluation loop and return the data
 
@@ -336,6 +337,9 @@ class SummaryModels:
         ----------
         validation : bool (Defaults to True)
             When True, the validation DataLoader is used, but otherwise the test loader is used
+
+        setup_type : str (Defaults to None)
+            Model setup used. This will be the value in the 'Setup type' column
 
         Returns
         -------
@@ -361,6 +365,8 @@ class SummaryModels:
         data["Equally weighted reconstruction log probability"] = (
             data["Reconstruction log probability"] / data["Length"]
         )
+        if setup_type is not None:
+            data["Setup type"] = setup_type
         return {
             "EquallyWeightedMeanLoss": eval_results[0],
             "EquallyWeightedMeanKLDivergence": eval_results[1],
@@ -381,6 +387,7 @@ class SummaryModels:
         hue_order=None,
         xlim=None,
         ylim=None,
+        title=None,
         print_summary_stats=False,
     ):
         """Creates a histogram or stacked histogram plot
@@ -420,6 +427,9 @@ class SummaryModels:
         ylim : list (Defaults to None)
             Limit of the y-axis
 
+        title : str (Defaults to None)
+            The figure title
+
         print_summary_stats : bool
             When True, summary statistics will also be printed
         """
@@ -449,6 +459,7 @@ class SummaryModels:
             ylabel,
             xlim,
             ylim,
+            title,
         )
         if print_summary_stats:
             print(
