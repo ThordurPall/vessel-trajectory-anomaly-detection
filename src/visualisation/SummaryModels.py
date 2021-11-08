@@ -522,3 +522,108 @@ class SummaryModels:
                 data.groupby("Ship type")[x].describe(),
                 sep="\n",
             )
+
+    def reconstruct(
+        self,
+        data,
+        type,
+        x,
+        y=None,
+        file_name=None,
+        xlabel=None,
+        ylabel=None,
+        hue=None,
+        hue_order=None,
+        xlim=None,
+        ylim=None,
+        bins="auto",
+        title=None,
+        print_summary_stats=False,
+    ):
+        """Creates a histogram or stacked histogram plot
+
+        Parameters
+        ----------
+        data : int
+            Data set to plot
+
+        type : str
+            Type of figure to plot (either "Histogram" or "Stacked")
+
+        x : str
+            Variable to plot on the x-axis
+
+        y : str (Defaults to None)
+            Variable to plot on the y-axis
+
+        file_name : str (Defaults to None)
+            File name where the figure will be saved
+
+        xlabel : str (Defaults to None)
+            x label text to put on the plot
+
+        ylabel : str (Defaults to None)
+            y label text to put on the plot
+
+        hue : str (Defaults to None)
+            Variable that determines the color of plot elements
+
+        hue_order : list (Defaults to None)
+            Specify the order of processing and plotting for categorical levels of hue
+
+        xlim : list (Defaults to None)
+            Limit of the x-axis
+
+        ylim : list (Defaults to None)
+            Limit of the y-axis
+
+        bins : str, number, vector, or a pair of such values
+            decides on the numbe of histogram bins
+
+        title : str (Defaults to None)
+            The figure title
+
+        print_summary_stats : bool
+            When True, summary statistics will also be printed
+        """
+        sns.set_theme(style="whitegrid")
+        sns.set_context("paper", rc={"lines.linewidth": 3.0})
+        style.use("seaborn-colorblind")
+
+        if type == "Histogram":
+            ax = sns.histplot(x=x, bins=bins, hue=hue, hue_order=hue_order, data=data)
+
+        elif type == "Stacked":
+            ax = sns.histplot(
+                x=x,
+                bins=bins,
+                hue=hue,
+                multiple="stack",
+                hue_order=hue_order,
+                data=data,
+            )
+        else:
+            print("Currently only implmented for 'Histogram' and 'Stacked'")
+
+        file_path = None
+        if file_name is not None:
+            file_path = self.explore_fig_dir / (file_name + ".pdf")
+        utils.add_plot_extras(
+            ax,
+            self.save_figures,
+            self.plot_figures,
+            file_path,
+            xlabel,
+            ylabel,
+            xlim,
+            ylim,
+            title,
+        )
+        if print_summary_stats:
+            print(
+                f"Mean {x}: {data[x].mean()}",
+                f"Median {x}: {data[x].median()}",
+                f"{x} statistics by ship type: ",
+                data.groupby("Ship type")[x].describe(),
+                sep="\n",
+            )

@@ -64,13 +64,13 @@ class VisualiseTrajectories:
     visualise_static_map(img)
         Visualises a static Google Maps map
 
-    plot_single_track(df_lon_lat, ax, use_cmap, color, plot_start, plot_end)
+    plot_single_track(df_lon_lat, ax, use_cmap, color, plot_start, plot_end, progress_bar)
         Plots a single vessel trajectory on an axis ax
 
     read_visualise_static_map()
         Gets an already created static Google Maps map for the ROI and plots it
 
-    read_map_plot_single_track(df_lon_lat, use_cmap, color, plot_start, plot_end, s)
+    read_map_plot_single_track(df_lon_lat, use_cmap, color, plot_start, plot_end, s, progress_bar)
         Reads the created static map and plots a single vessel trajectory
     """
 
@@ -170,7 +170,7 @@ class VisualiseTrajectories:
         static_map_file = self.region + "_static_map_zoom_" + str(self.zoom) + ".png"
         return mpimg.imread(self.trajectories_fig_dir / static_map_file)
 
-    def visualise_static_map(self, img):
+    def visualise_static_map(self, img, subplots=[1, 1]):
         """Visualises a static Google Maps map
 
         Returns
@@ -178,11 +178,19 @@ class VisualiseTrajectories:
         matplotlib.axes.Axes
             The axes for the plot
         """
-        fig, ax = plt.subplots(figsize=self.fig_size)
-        ax.imshow(img, extent=self.bounds, aspect="auto")
-        ax.set_xlabel("Longitude")
-        ax.set_ylabel("Latitude")
-        return fig, ax
+        fig, axs = plt.subplots(
+            nrows=subplots[0], ncols=subplots[1], figsize=self.fig_size
+        )
+        if sum(subplots) > 2:
+            for ax in axs:
+                ax.imshow(img, extent=self.bounds, aspect="auto")
+                ax.set_xlabel("Longitude")
+                ax.set_ylabel("Latitude")
+        else:
+            axs.imshow(img, extent=self.bounds, aspect="auto")
+            axs.set_xlabel("Longitude")
+            axs.set_ylabel("Latitude")
+        return fig, axs
 
     def remove_points_outside_ROI(self, df, lat_lon_names=["Latitude", "Longitude"]):
         """Remove points outside the min/max lon/lat interval
@@ -207,6 +215,7 @@ class VisualiseTrajectories:
         plot_start=True,
         plot_end=True,
         s=100,
+        progress_bar=False,
     ):
         """Plots a single vessel trajectory on an axis ax
 
@@ -236,6 +245,10 @@ class VisualiseTrajectories:
             When True, the end of trajectory is plotted as a point on top of the figure
 
         s: float or array-like (Defaults to 100)
+
+        progress_bar : bool (Defaults to False)
+            When True, a progressbar.progressbar will be used when plotting points
+
         """
         logger = logging.getLogger(__name__)  # For logging information
 
@@ -263,19 +276,32 @@ class VisualiseTrajectories:
             logger.info(
                 "Plot a single complete vessel trajectory one connection at a time"
             )
-            for i in progressbar.progressbar(range(n - 1)):
-                # Plot a line connecting the current row to the next one
-                sns.lineplot(
-                    x=df_lon_lat.loc[df_lon_lat.index[[i, i + 1]], "Longitude"],
-                    y=df_lon_lat.loc[df_lon_lat.index[[i, i + 1]], "Latitude"],
-                    sort=False,
-                    color=colors[i],
-                    ax=ax,
-                )
+            if progress_bar:
+                for i in progressbar.progressbar(
+                    range(n - 1),
+                ):
+                    # Plot a line connecting the current row to the next one
+                    sns.lineplot(
+                        x=df_lon_lat.loc[df_lon_lat.index[[i, i + 1]], "Longitude"],
+                        y=df_lon_lat.loc[df_lon_lat.index[[i, i + 1]], "Latitude"],
+                        sort=False,
+                        color=colors[i],
+                        ax=ax,
+                    )
+            else:
+                for i in range(n - 1):
+                    # Plot a line connecting the current row to the next one
+                    sns.lineplot(
+                        x=df_lon_lat.loc[df_lon_lat.index[[i, i + 1]], "Longitude"],
+                        y=df_lon_lat.loc[df_lon_lat.index[[i, i + 1]], "Latitude"],
+                        sort=False,
+                        color=colors[i],
+                        ax=ax,
+                    )
 
         # Check whether to plot the start and end of trajectory as a point
         if plot_start & plot_end:
-            plt.scatter(
+            ax.scatter(
                 x=df_lon_lat.loc[df_lon_lat.index[[0, -1]], "Longitude"],
                 y=df_lon_lat.loc[df_lon_lat.index[[0, -1]], "Latitude"],
                 color=[colors[0], colors[-1]],
@@ -283,14 +309,14 @@ class VisualiseTrajectories:
             )
 
         elif plot_start & ~plot_end:
-            plt.scatter(
+            ax.scatter(
                 x=df_lon_lat.loc[df_lon_lat.index[0], "Longitude"],
                 y=df_lon_lat.loc[df_lon_lat.index[0], "Latitude"],
                 color=colors[0],
                 s=s,
             )
         elif ~plot_start & plot_end:
-            plt.scatter(
+            ax.scatter(
                 x=df_lon_lat.loc[df_lon_lat.index[-1], "Longitude"],
                 y=df_lon_lat.loc[df_lon_lat.index[-1], "Latitude"],
                 color=colors[-1],
@@ -325,7 +351,13 @@ class VisualiseTrajectories:
         return fig, img, ax
 
     def read_map_plot_single_track(
-        self, df_lon_lat, use_cmap=False, color=None, plot_start=True, plot_end=True
+        self,
+        df_lon_lat,
+        use_cmap=False,
+        color=None,
+        plot_start=True,
+        plot_end=True,
+        progress_bar=False,
     ):
         """Reads the created static map and plots a single vessel trajectory
 
@@ -348,14 +380,25 @@ class VisualiseTrajectories:
 
         plot_end : bool (Defaults to True)
             When True, the end of trajectory is plotted as a point on top of the figure
+
+        progress_bar : bool (Defaults to False)
+            When True, a progressbar.progressbar will be used when plotting points
         """
         logger = logging.getLogger(__name__)  # For logging information
         logger.info(
             "Calling self.read_visualise_static_map to get and visualises the map"
         )
-        _, _, _, ax = self.read_visualise_static_map()
+        _, _, ax = self.read_visualise_static_map()
         logger.info("Calling self.plot_single_track to plot a single track on the map")
-        self.plot_single_track(df_lon_lat, ax, use_cmap, color, plot_start, plot_end)
+        self.plot_single_track(
+            df_lon_lat,
+            ax,
+            use_cmap,
+            color,
+            plot_start,
+            plot_end,
+            progress_bar=progress_bar,
+        )
 
     def plot_points(
         self,
