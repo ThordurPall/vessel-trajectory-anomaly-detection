@@ -126,6 +126,7 @@ def getPositionalBoundaries(edges, zoom=8):
 
 
 def PlotTrack(encodedTrack, edges, ax, color=None, lsty="solid", print_=False):
+    # Plots a four hot encoded track on the axis ax
 
     seq_len, data_dim = encodedTrack.shape
     lat_edges, lon_edges, speed_edges, course_edges = edges
@@ -202,11 +203,11 @@ def PlotTrack(encodedTrack, edges, ax, color=None, lsty="solid", print_=False):
 
 
 def plotDataset(dataset, ax, edges, n=5000):
-
+    # Plots n tracks from the data set on axis ax
     xlist = []
     ylist = []
     for i in progressbar.progressbar(range(0, n)):
-        mmsi, _, _, _, _, _, track = dataset[i]
+        mmsi, time_stamps, ship_type_label, track_length, inputs, track = dataset[i]
         lon, lat = PlotDatasetTrack(track, edges)
         xlist.extend(lon)
         ylist.extend(lat)
@@ -221,6 +222,7 @@ def plotDataset(dataset, ax, edges, n=5000):
 
 
 def PlotDatasetTrack(encodedTrack, edges):
+    # Returns the lat and lon of a four hot encoded track
 
     seq_len, data_dim = encodedTrack.shape
     lat_edges, lon_edges, speed_edges, course_edges = edges

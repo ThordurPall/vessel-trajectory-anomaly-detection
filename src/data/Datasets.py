@@ -52,7 +52,14 @@ class AISDiscreteRepresentation(torch.utils.data.Dataset):
         Computs the mean of how often the different bins are activated
     """
 
-    def __init__(self, file_name, train_mean=None, validation=False):
+    def __init__(
+        self,
+        file_name,
+        train_mean=None,
+        validation=False,
+        data_info=None,
+        indicies=None,
+    ):
         """
         Parameters
         ----------
@@ -66,6 +73,13 @@ class AISDiscreteRepresentation(torch.utils.data.Dataset):
         validation : bool (Defaults to False)
             When validation is True, a validation Dataset is created, but when it
             is False a test set is created (assuming train_mean is None)
+
+        data_info : dict (Defaults to None)
+            Information about the data. When None, it is read from the data_info_file
+
+        indicies : list (Defaults to None)
+            Train, val, or test indicies where the tracks begin in the data file.
+            When None, the indicies are read from the requested data set
         """
         logger = logging.getLogger(__name__)  # For logging information
 
@@ -74,20 +88,26 @@ class AISDiscreteRepresentation(torch.utils.data.Dataset):
         processed_data_dir = project_dir / "data" / "processed"
 
         # Read the data info pickle file into memory
-        data_info_file = processed_data_dir / ("datasetInfo_" + file_name + ".pkl")
-        logger.info("Processing data from the info file: " + str(data_info_file))
-        with open(data_info_file, "rb") as f:
-            self.data_info = pickle.load(f)
+        if data_info is None:
+            data_info_file = processed_data_dir / ("datasetInfo_" + file_name + ".pkl")
+            logger.info("Processing data from the info file: " + str(data_info_file))
+            with open(data_info_file, "rb") as f:
+                self.data_info = pickle.load(f)
+        else:
+            self.data_info = data_info
         self.data_path = self.data_info["dataFileName"]
 
         # Get the requested data set (one of train/val/test)
-        if train_mean == None:
-            self.indicies = self.data_info["trainIndicies"]
-        else:
-            if validation:
-                self.indicies = self.data_info["valIndicies"]
+        if indicies is None:
+            if train_mean == None:
+                self.indicies = self.data_info["trainIndicies"]
             else:
-                self.indicies = self.data_info["testIndicies"]
+                if validation:
+                    self.indicies = self.data_info["valIndicies"]
+                else:
+                    self.indicies = self.data_info["testIndicies"]
+        else:
+            self.indicies = indicies
 
         # Get the dimension of the four hot encoded vector (#Bins = #edges - 1)
         lat_edges, lon_edges, speed_edges, course_edges = self.data_info["binedges"]

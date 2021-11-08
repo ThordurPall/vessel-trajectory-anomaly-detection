@@ -3,6 +3,8 @@ import pickle
 import matplotlib.pyplot as plt
 import pandas as pd
 
+import src.utils.plotting as plotting
+
 
 # Utils file for useful functions used throughout the code base
 def add_plot_extras(
@@ -89,15 +91,22 @@ def read_data_info_file(data_info_file):
     return data_info
 
 
-def get_track_by_index(path, idx, keep_cols=None, col_names=None):
+def get_track_by_index(
+    path=None,
+    idx=None,
+    keep_cols=None,
+    col_names=None,
+    data_set=None,
+    continuous_representation=True,
+):
     """Get the requested track - Read the data file from the current index
 
     Parameters
     ----------
-    path : pathlib.WindowsPath
+    path : pathlib.WindowsPath (Defaults to None)
         Location of the file to read
 
-    idx : int
+    idx : int (Defaults to None)
         Where to start reading the data file
 
     keep_cols : list (Defaults to None)
@@ -106,18 +115,42 @@ def get_track_by_index(path, idx, keep_cols=None, col_names=None):
     col_names : list (Defaults to None)
         The column names to use for the returned data frame
 
+    data_set : src.data.Datasets.AISDiscreteRepresentation (Defaults to None)
+        The data set to use to read in the track
+
+    continuous_representation : bool (Defaults to True)
+            Either continuous or discrete AIS trajectory representation
+
     Returns
     ----------
     pandas.DataFrame
         Data frame with the requested trajectory
     """
-    with open(path, "rb") as f:
-        f.seek(idx)
-        track = pickle.load(f)
-    df = pd.DataFrame(track)
+    if continuous_representation and path is not None and idx is not None:
+        with open(path, "rb") as f:
+            f.seek(idx)
+            track = pickle.load(f)
+        df = pd.DataFrame(track)
 
-    if keep_cols is not None:
-        df = df[keep_cols]
-    if col_names is not None:
-        df.columns = col_names
+        if keep_cols is not None:
+            df = df[keep_cols]
+        if col_names is not None:
+            df.columns = col_names
+    elif not continuous_representation and data_set is not None:
+        Longitude, Latitude = [], []
+        for i in range(0, len(data_set)):
+            mmsi, time, ship_type_label, track_length, inputs, target = data_set[i]
+
+            # The targets are the actual tracks (not centered)
+            lon, lat = plotting.PlotDatasetTrack(target, data_set.data_info["binedges"])
+            Longitude.extend(lon)
+            Latitude.extend(lat)
+
+        df = pd.DataFrame({"Longitude": Longitude, "Latitude": Latitude})
+
+    else:
+        print(
+            "Either use continuous representation with path and idx or discrete with data_set"
+        )
+        df = -1
     return df

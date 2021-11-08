@@ -33,6 +33,9 @@ class VisualiseTrajectories:
     region : str
         One of the specified regions in the config file (like "Bornholm")
 
+    continuous_representation : bool
+        Either continuous (True) or discrete (False) AIS trajectory representation
+
     save_figures : bool
         Whether or not to save all created figures by default
 
@@ -79,7 +82,15 @@ class VisualiseTrajectories:
         Reads the created static map and plots a single vessel trajectory
     """
 
-    def __init__(self, region, save_figures, plot_figures, fig_size, zoom=None):
+    def __init__(
+        self,
+        region,
+        save_figures,
+        plot_figures,
+        fig_size,
+        zoom=None,
+        continuous_representation=True,
+    ):
         """
         Parameters
         ----------
@@ -98,6 +109,9 @@ class VisualiseTrajectories:
         zoom : int (Defauls to None)
             The zoom to use for the static Google Maps map for the ROI.
             When no zoom is given, the zoom from the config file is used
+
+        continuous_representation : bool (Defaults to True)
+            Either continuous or discrete AIS trajectory representation
         """
 
         super().__init__()
@@ -105,6 +119,7 @@ class VisualiseTrajectories:
         self.save_figures = save_figures
         self.plot_figures = plot_figures
         self.fig_size = fig_size
+        self.continuous_representation = continuous_representation
 
         # Setup the correct foldure structure
         project_dir = Path(__file__).resolve().parents[2]
