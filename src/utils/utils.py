@@ -1,4 +1,7 @@
+import pickle
+
 import matplotlib.pyplot as plt
+import pandas as pd
 
 
 # Utils file for useful functions used throughout the code base
@@ -65,3 +68,56 @@ def add_plot_extras(
         plt.savefig(file_name_path, bbox_inches="tight")
     if plot_figure:
         plt.show()
+
+
+# Read the info file to know how to read the data file
+def read_data_info_file(data_info_file):
+    """Get the requested track - Read the data file from the current index
+
+    Parameters
+    ----------
+    data_info_file : pathlib.WindowsPath
+        Location of the file to read
+
+    Returns
+    ----------
+    dict
+        Dictionary of data file information
+    """
+    with open(data_info_file, "rb") as f:
+        data_info = pickle.load(f)
+    return data_info
+
+
+def get_track_by_index(path, idx, keep_cols=None, col_names=None):
+    """Get the requested track - Read the data file from the current index
+
+    Parameters
+    ----------
+    path : pathlib.WindowsPath
+        Location of the file to read
+
+    idx : int
+        Where to start reading the data file
+
+    keep_cols : list (Defaults to None)
+        The columns to keep
+
+    col_names : list (Defaults to None)
+        The column names to use for the returned data frame
+
+    Returns
+    ----------
+    pandas.DataFrame
+        Data frame with the requested trajectory
+    """
+    with open(path, "rb") as f:
+        f.seek(idx)
+        track = pickle.load(f)
+    df = pd.DataFrame(track)
+
+    if keep_cols is not None:
+        df = df[keep_cols]
+    if col_names is not None:
+        df.columns = col_names
+    return df

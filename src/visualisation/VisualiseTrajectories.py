@@ -1,9 +1,11 @@
 import logging
+import pickle
 from pathlib import Path
 
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
 import matplotlib.style as style
+import pandas as pd
 import progressbar
 import seaborn as sns
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -66,6 +68,9 @@ class VisualiseTrajectories:
 
     plot_single_track(df_lon_lat, ax, use_cmap, color, plot_start, plot_end, progress_bar)
         Plots a single vessel trajectory on an axis ax
+
+    plot_multiple_tracks(ax, indicies, data_path, df_lon_lat, use_cmap, color, plot_start, plot_end, s, progress_bar)
+        Plots multiple vessel trajectory on an axis ax
 
     read_visualise_static_map()
         Gets an already created static Google Maps map for the ROI and plots it
@@ -332,6 +337,123 @@ class VisualiseTrajectories:
             )
         if self.plot_figures:
             plt.show()
+
+    def plot_multiple_tracks(
+        self,
+        ax,
+        indicies=None,
+        data_path=None,
+        df_lon_lat=None,
+        use_cmap=False,
+        color=None,
+        plot_start=True,
+        plot_end=True,
+        s=100,
+        progress_bar=False,
+    ):
+        """Plots multiple vessel trajectory on an axis ax
+
+        The axis object ax typically comes from using imshow on a static Google Maps map of the ROI
+
+        Parameters
+        ----------
+        ax : matplotlib.axes.Axes
+            Pre-existing axes for the plot
+
+        indicies : list (Defaults to None)
+            The trajectory starting index position to plot
+
+        data_path : pathlib.WindowsPath (Defaults to None)
+            Location of the file to read. Required when indicies are given
+
+        df : pandas.DataFrame (Defaults to None)
+            Data frame of the longitudes and latitudes to plot and a unique
+            trajectory id. Either indicies or df_lon_lat must be non None
+
+        use_cmap : bool (defaults to False)
+            When False, uses a single color for the entire trajectory. Uses the color
+            variable if it is specified, but otherwise a default color is used.
+            When True, a color map will be used, such that the trajectory is
+            blue in the beginning and yellow in the end.
+
+        color : str (Defaults to None)
+            Defines the color to use when plotting the trajectory
+
+        plot_start : bool (Defaults to True)
+            When True, the start of trajectory is plotted as a point on top of the figure
+
+        plot_end : bool (Defaults to True)
+            When True, the end of trajectory is plotted as a point on top of the figure
+
+        s: float or array-like (Defaults to 100)
+
+        progress_bar : bool (Defaults to False)
+            When True, a progressbar.progressbar will be used when plotting points
+
+        """
+        if indicies is not None:
+            # Keep track of trajectory information and turn off save/plot for now
+            trajectories = []
+            save_tmp = self.save_figures
+            plot_tmp = self.plot_figures
+            self.save_figures = False
+            self.plot_figures = False
+
+            for idx in indicies[:-1]:
+                df = utils.get_track_by_index(
+                    data_path, idx, keep_cols=None, col_names=None
+                )
+                trajectories.append(
+                    [
+                        df["mmsi"][0],
+                        df["track_length"][0],
+                        df["timestamp"][0],
+                        df["timestamp"].iloc[-1],
+                    ]
+                )
+                df_lon_lat = utils.get_track_by_index(
+                    data_path,
+                    idx,
+                    keep_cols=["lon", "lat"],
+                    col_names=["Longitude", "Latitude"],
+                )
+                self.plot_single_track(
+                    df_lon_lat,
+                    ax,
+                    use_cmap=use_cmap,
+                    color=color,
+                    plot_start=plot_start,
+                    plot_end=plot_end,
+                    s=s,
+                    progress_bar=progress_bar,
+                )
+            # Plot the last trajectory and save the results
+            self.save_figures = save_tmp
+            self.plot_figures = plot_tmp
+            df = utils.get_track_by_index(data_path, indicies[-1])
+            trajectories.append(
+                [
+                    df["mmsi"][0],
+                    df["track_length"][0],
+                    df["timestamp"][0],
+                    df["timestamp"].iloc[-1],
+                ]
+            )
+            df_lon_lat = utils.get_track_by_index(
+                data_path,
+                indicies[-1],
+                keep_cols=["lon", "lat"],
+                col_names=["Longitude", "Latitude"],
+            )
+            return pd.DataFrame(
+                trajectories,
+                columns=["MMSI", "TrackLength", "DateTimeStart", "DateTimeEnd"],
+            )
+        elif df_lon_lat is not None:
+            print("TODO")
+            return df_lon_lat
+        else:
+            print("Either indicies or df_lon_lat must be provided")
 
     def read_visualise_static_map(self):
         """Gets an already created static Google Maps map for the ROI and plots it
