@@ -56,10 +56,10 @@ class SummaryModels:
     plot_curves(df, hue, hue_order, title, file_name, xlims, ylims, fig_size)
         Plots the loss, KL divergence, and reconstruction log probabilities side by side
 
-    run_evaluation(validation=True)
+    run_evaluation(validation, setup_type, fishing_file, fishing_new_file)
         Run evaluation loop and return the data
 
-    hist_stacked_plot(data, type, x, y, file_name, xlabel, ylabel, hue, hue_order, xlim, ylim, print_summary_stats)
+    hist_stacked_plot(data, type, x, y, file_name, xlabel, ylabel, hue, hue_order, xlim, ylim, print_summary_stats, title)
         Creates a histogram or stacked histogram plot
     """
 
@@ -330,6 +330,8 @@ class SummaryModels:
         self,
         validation=True,
         setup_type=None,
+        fishing_file=None,
+        fishing_new_file=None,
     ):
         """Run evaluation loop and return the data
 
@@ -341,20 +343,62 @@ class SummaryModels:
         setup_type : str (Defaults to None)
             Model setup used. This will be the value in the 'Setup type' column
 
+        fishing_file : str (Defaults to None)
+            Name of the main part of the fishing vessel only data file for the same ROI and dates as in file_name.
+            When not None, the evaluation will be done using this data set
+
+        fishing_new_file : str (Defaults to None)
+            Name of the main part of a new fishing vessel only data file with a different ROI or dates (or both).
+            When not None, the evaluation will be done using this data set. In case fishing_file and fishing_new_file
+            are both not None evaluation will be done on the fishing_file
+
         Returns
         -------
         dict
             Dictionary containing the evaluation information
         """
-        train_evaluate = TrainEvaluate(self.file_name, is_trained=True)
-        if validation:
-            eval_results = train_evaluate.evaluate_loop(
-                train_evaluate.validation_dataloader, train_evaluate.validation_n
-            )
+        # Initialize the TrainEvaluate with the current setup
+        train_evaluate = TrainEvaluate(
+            self.file_name,
+            is_trained=True,
+            fishing_file=fishing_file,
+            fishing_new_file=fishing_new_file,
+        )
+
+        # Check which data set to actually use when running the evaluation loop
+        if fishing_file is not None:
+            if validation:
+                eval_results = train_evaluate.evaluate_loop(
+                    train_evaluate.fishing_validation_dataloader,
+                    train_evaluate.fishing_validation_n,
+                )
+            else:
+                eval_results = train_evaluate.evaluate_loop(
+                    train_evaluate.fishing_test_dataloader,
+                    train_evaluate.fishing_test_n,
+                )
+        elif fishing_new_file is not None:
+            if validation:
+                eval_results = train_evaluate.evaluate_loop(
+                    train_evaluate.fishing_new_validation_dataloader,
+                    train_evaluate.fishing_new_validation_n,
+                )
+            else:
+                eval_results = train_evaluate.evaluate_loop(
+                    train_evaluate.fishing_new_test_dataloader,
+                    train_evaluate.fishing_new_test_n,
+                )
         else:
-            eval_results = train_evaluate.evaluate_loop(
-                train_evaluate.test_dataloader, train_evaluate.test_n
-            )
+            if validation:
+                eval_results = train_evaluate.evaluate_loop(
+                    train_evaluate.validation_dataloader, train_evaluate.validation_n
+                )
+            else:
+                eval_results = train_evaluate.evaluate_loop(
+                    train_evaluate.test_dataloader, train_evaluate.test_n
+                )
+
+        # Setup a data frame for the trajectory level data
         data = pd.DataFrame(
             {
                 "Reconstruction log probability": eval_results[3],
