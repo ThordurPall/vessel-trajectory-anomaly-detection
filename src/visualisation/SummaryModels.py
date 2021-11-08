@@ -59,7 +59,7 @@ class SummaryModels:
     run_evaluation(validation, setup_type, fishing_file, fishing_new_file)
         Run evaluation loop and return the data
 
-    hist_stacked_plot(data, type, x, y, file_name, xlabel, ylabel, hue, hue_order, xlim, ylim, print_summary_stats, title)
+    hist_stacked_plot(data, type, x, y, file_name, xlabel, ylabel, hue, hue_order, xlim, ylim, bins, print_summary_stats, title)
         Creates a histogram or stacked histogram plot
     """
 
@@ -431,6 +431,7 @@ class SummaryModels:
         hue_order=None,
         xlim=None,
         ylim=None,
+        bins="auto",
         title=None,
         print_summary_stats=False,
     ):
@@ -471,6 +472,9 @@ class SummaryModels:
         ylim : list (Defaults to None)
             Limit of the y-axis
 
+        bins : str, number, vector, or a pair of such values
+            decides on the numbe of histogram bins
+
         title : str (Defaults to None)
             The figure title
 
@@ -482,11 +486,16 @@ class SummaryModels:
         style.use("seaborn-colorblind")
 
         if type == "Histogram":
-            ax = sns.histplot(x=x, hue=hue, hue_order=hue_order, data=data)
+            ax = sns.histplot(x=x, bins=bins, hue=hue, hue_order=hue_order, data=data)
 
         elif type == "Stacked":
             ax = sns.histplot(
-                x=x, hue=hue, multiple="stack", hue_order=hue_order, data=data
+                x=x,
+                bins=bins,
+                hue=hue,
+                multiple="stack",
+                hue_order=hue_order,
+                data=data,
             )
         else:
             print("Currently only implmented for 'Histogram' and 'Stacked'")
