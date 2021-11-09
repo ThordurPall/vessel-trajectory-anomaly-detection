@@ -422,9 +422,16 @@ class TrainEvaluate:
         # Iterate over a data set of inputs - Begin training loop
         loss_epoch, kl_epoch, recon_epoch = 0, 0, 0
         self.model.train()
-        for _, (_, _, _, lengths, inputs, targets) in enumerate(
-            self.training_dataloader
-        ):
+        for _, (
+            data_set_indices,
+            file_location_indices,
+            mmsis,
+            time_stamps,
+            ship_types,
+            lengths,
+            inputs,
+            targets,
+        ) in enumerate(self.training_dataloader):
             inputs = inputs.to(self.device)
             targets = targets.to(self.device)
             lengths = lengths.to(self.device)
@@ -494,9 +501,20 @@ class TrainEvaluate:
         """
         # Iterate over the evaluation data set to check if model performance is improving -  Begin evaluation loop
         loss_epoch, kl_epoch, recon_epoch = 0, 0, 0
+        all_file_location_indices, all_data_set_indices, all_mmsis = [], [], []
         all_log_px, all_lengths, all_ship_types = [], [], []
+
         self.model.eval()
-        for _, (_, _, ship_types, lengths, inputs, targets) in enumerate(data_loader):
+        for _, (
+            data_set_indices,
+            file_location_indices,
+            mmsis,
+            time_stamps,
+            ship_types,
+            lengths,
+            inputs,
+            targets,
+        ) in enumerate(data_loader):
             inputs = inputs.to(self.device)
             targets = targets.to(self.device)
             lengths = lengths.to(self.device)
@@ -512,12 +530,15 @@ class TrainEvaluate:
             loss_epoch += loss.item() * len(lengths)
             kl_epoch += torch.sum(kl / lengths).item()
             recon_epoch += torch.sum(log_px / lengths).item()
-            all_log_px = all_log_px + log_px.tolist()
-            all_lengths = all_lengths + lengths.tolist()
-            all_ship_types = all_ship_types + [
+            all_log_px += log_px.tolist()
+            all_lengths += lengths.tolist()
+            all_ship_types += [
                 dataset_utils.convertShipLabelToType(ship_type.item())
                 for ship_type in ship_types
             ]
+            all_file_location_indices += file_location_indices.tolist()
+            all_data_set_indices += data_set_indices.tolist()
+            all_mmsis += mmsis.tolist()
         return [
             loss_epoch / data_n,
             kl_epoch / data_n,
@@ -525,6 +546,9 @@ class TrainEvaluate:
             all_log_px,
             all_lengths,
             all_ship_types,
+            all_file_location_indices,
+            all_mmsis,
+            all_data_set_indices,
         ]
 
     def save_training_curves(
@@ -805,3 +829,68 @@ class TrainEvaluate:
 
         # Save the final (trained) model
         torch.save(self.model.state_dict(), self.model_dir / (self.model_name + ".pth"))
+
+    def track_reconstructions(
+        self,
+        data_set,
+        data_set_idx,
+    ):
+        """Reconstruct the requested trajectory in the given data set
+
+        Parameters
+        ----------
+        data_set : src.data.Datasets
+            The data set that contains the trajectory to reconstruct
+
+        data_set_index : int
+            The index of the trajectory to reconstruct
+
+        Returns
+        -------
+         :
+
+        """
+        self.model.eval()
+        (
+            data_set_index,
+            file_location_index,
+            mmsi,
+            time_stamps,
+            ship_type,
+            length,
+            input,
+            target,
+        ) = data_set[data_set_idx]
+        input = input.to(self.device)
+        target_device = target.to(self.device)
+
+        # Use the pretrained model
+        logits = torch.zeros(
+            length.int().item(), 1, data_set.data_dim, device=self.device
+        )
+        log_px, _, _, logits, _, _, _, _ = self.model(
+            input.unsqueeze(0), target_device.unsqueeze(0), logits=logits
+        )
+        logits = logits.cpu()
+
+        # Go from the log odds to a four hot encoded discrete representation
+        reconstruction_discrete = plotting.logitToTrack(
+            logits, data_set.data_info["binedges"]
+        )
+
+        # Get the reconstructed continuous lat and lon values
+        reconstruction_lon, reconstruction_lat = plotting.PlotDatasetTrack(
+            reconstruction_discrete, data_set.data_info["binedges"]
+        )
+        reconstruction = pd.DataFrame(
+            {
+                "Longitude": reconstruction_lon,
+                "Latitude": reconstruction_lat,
+            }
+        )
+
+        return {
+            "Reconstruction": reconstruction,
+            "Reconstruction four-hot encoded": reconstruction_discrete,
+            "Reconstruction log probability": log_px,
+        }

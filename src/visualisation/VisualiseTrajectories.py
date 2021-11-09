@@ -236,6 +236,7 @@ class VisualiseTrajectories:
         plot_end=True,
         s=100,
         progress_bar=False,
+        return_ax=False,
     ):
         """Plots a single vessel trajectory on an axis ax
 
@@ -269,6 +270,8 @@ class VisualiseTrajectories:
         progress_bar : bool (Defaults to False)
             When True, a progressbar.progressbar will be used when plotting points
 
+        return_ax : bool (Defaults to False)
+            Return the axis plotted on when True
         """
         logger = logging.getLogger(__name__)  # For logging information
 
@@ -359,6 +362,8 @@ class VisualiseTrajectories:
             )
         if self.plot_figures:
             plt.show()
+        if return_ax:
+            return ax
 
     def plot_multiple_tracks(
         self,
@@ -550,6 +555,7 @@ class VisualiseTrajectories:
         plot_start=True,
         plot_end=True,
         progress_bar=False,
+        return_ax=False,
     ):
         """Reads the created static map and plots a single vessel trajectory
 
@@ -575,6 +581,9 @@ class VisualiseTrajectories:
 
         progress_bar : bool (Defaults to False)
             When True, a progressbar.progressbar will be used when plotting points
+
+        return_ax : bool (Defaults to False)
+            Return the axis plotted on when True
         """
         logger = logging.getLogger(__name__)  # For logging information
         logger.info(
@@ -591,6 +600,8 @@ class VisualiseTrajectories:
             plot_end,
             progress_bar=progress_bar,
         )
+        if return_ax:
+            return ax
 
     def plot_points(
         self,

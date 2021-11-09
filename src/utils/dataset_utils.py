@@ -99,13 +99,15 @@ def FourHotEncode(track, edges):
 
 def PadSequence(batch):
     # Function that takes care of the zero padding
-    # Each element in "batch" is a tuple (MMSI, timestamps, labels, lengths, inputs, targets)
-    mmsis = [x[0] for x in batch]
-    timestamps = [x[1] for x in batch]
-    labels = [x[2] for x in batch]
-    lengths = [x[3] for x in batch]
-    inputs = [x[4] for x in batch]
-    targets = [x[5] for x in batch]
+    # Each element in "batch" is a tuple (data_set_indices, file_location_indices, MMSI, timestamps, labels, lengths, inputs, targets)
+    data_set_indices = [x[0] for x in batch]
+    file_location_indices = [x[1] for x in batch]
+    mmsis = [x[2] for x in batch]
+    timestamps = [x[3] for x in batch]
+    labels = [x[4] for x in batch]
+    lengths = [x[5] for x in batch]
+    inputs = [x[6] for x in batch]
+    targets = [x[7] for x in batch]
 
     # Get each sequence and pad it - Returns zero padded inputs and targets (all samples with the same lengths).
     # Seqeuences are padded to the maximum length of mini-batch sequences
@@ -113,6 +115,8 @@ def PadSequence(batch):
     targets_padded = torch.nn.utils.rnn.pad_sequence(targets, batch_first=True)
 
     return (
+        torch.tensor(data_set_indices),
+        torch.tensor(file_location_indices),
         torch.tensor(mmsis),
         timestamps,
         torch.tensor(labels),

@@ -401,9 +401,12 @@ class SummaryModels:
         # Setup a data frame for the trajectory level data
         data = pd.DataFrame(
             {
-                "Reconstruction log probability": eval_results[3],
-                "Length": eval_results[4],
+                "Data set Index": eval_results[8],
+                "Index": eval_results[6],
+                "MMSI": eval_results[7],
                 "Ship type": eval_results[5],
+                "Length": eval_results[4],
+                "Reconstruction log probability": eval_results[3],
             }
         )
         data["Equally weighted reconstruction log probability"] = (
@@ -416,6 +419,79 @@ class SummaryModels:
             "EquallyWeightedMeanKLDivergence": eval_results[1],
             "EquallyWeightedMeanReconstructionLogProbability": eval_results[2],
             "TrajectoryLevelData": data,
+            "TrainEvaluateObject": train_evaluate,
+        }
+
+    def run_evaluation_get_n(
+        self,
+        n=6,
+        worst=True,
+        vessel_type="Any",
+        equally_weighted=True,
+        validation=True,
+        setup_type=None,
+        fishing_file=None,
+        fishing_new_file=None,
+    ):
+        """Run evaluation loop and return the best/worst ones
+
+        Parameters
+        ----------
+        n : int (Defaults to 6)
+            How many trajectories to return
+
+        worst : bool (Defaults to None)
+            When True, the worst reconstructions are returned.
+            When False, the best reconstructions are returned
+
+        vessel_type : str (Defaults to 'Any')
+            Possibility to list which vessel type to focus on (one of 'Any'/'Fishing'/'Cargo'/'Tanker')
+
+        equally_weighted : bool (Defaults to True)
+            When True, the equally weighted reconstruction log probability are used.
+            When False, the reconstruction log probability are used.
+
+        validation : bool (Defaults to True)
+            When True, the validation DataLoader is used, but otherwise the test loader is used
+
+        setup_type : str (Defaults to None)
+            Model setup used. This will be the value in the 'Setup type' column
+
+        fishing_file : str (Defaults to None)
+            Name of the main part of the fishing vessel only data file for the same ROI and dates as in file_name.
+            When not None, the evaluation will be done using this data set
+
+        fishing_new_file : str (Defaults to None)
+            Name of the main part of a new fishing vessel only data file with a different ROI or dates (or both).
+            When not None, the evaluation will be done using this data set. In case fishing_file and fishing_new_file
+            are both not None evaluation will be done on the fishing_file
+
+        Returns
+        -------
+        dict
+            Dictionary containing the evaluation information
+        """
+        # Run the evaluation on the entire data set
+        data = self.run_evaluation(
+            validation=validation,
+            setup_type=setup_type,
+            fishing_file=fishing_file,
+            fishing_new_file=fishing_new_file,
+        )
+        df = data["TrajectoryLevelData"]
+        if vessel_type != "Any":
+            df = df.loc[df["Ship type"] == vessel_type]
+
+        if not equally_weighted:
+            df = df.sort_values("Reconstruction log probability", ascending=worst)
+        else:
+            df = df.sort_values(
+                "Equally weighted reconstruction log probability", ascending=worst
+            )
+        breakpoint()
+        return {
+            "TrajectoryLevelData": df.head(n),
+            "TrainEvaluateObject": data["TrainEvaluateObject"],
         }
 
     def hist_stacked_plot(

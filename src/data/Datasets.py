@@ -167,6 +167,8 @@ class AISDiscreteRepresentation(torch.utils.data.Dataset):
 
         # Return the trajectory with other (potentially) useful information
         return (
+            torch.tensor(idx),
+            torch.tensor(self.indicies[idx]),
             torch.tensor(track["mmsi"]),
             np.array(track["timestamp"]),
             torch.tensor(ship_type_label),

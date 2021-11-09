@@ -207,7 +207,7 @@ def plotDataset(dataset, ax, edges, n=5000):
     xlist = []
     ylist = []
     for i in progressbar.progressbar(range(0, n)):
-        mmsi, time_stamps, ship_type_label, track_length, inputs, track = dataset[i]
+        index, mmsi, time_stamps, ship_type, track_length, inputs, track = dataset[i]
         lon, lat = PlotDatasetTrack(track, edges)
         xlist.extend(lon)
         ylist.extend(lat)
@@ -410,7 +410,7 @@ def plot_recon(datapoint, binedges, model, device):
 
     fig, ax = plt.subplots(1, 2, figsize=(20, 10))
 
-    _, _, _, length, datainput, datatarget, _ = datapoint
+    _, _, _, _, _, length, datainput, datatarget = datapoint
     datadim = datainput.shape[1]
     datainput = datainput.to(device)
     datatarget_gpu = datatarget.to(device)
@@ -466,7 +466,7 @@ def make_vae_plots(
     ax[0, 2].legend()
 
     for i, idx in enumerate(datapoints):
-        _, _, _, length, datainput, datatarget = validationdata[idx]
+        _, _, _, _, _, length, datainput, datatarget = validationdata[idx]
         datainput = datainput.to(device)
         datatarget_gpu = datatarget.to(device)
 

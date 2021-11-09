@@ -186,10 +186,19 @@ def get_tracks_from_dataset(
 
     else:
         # Discrete AIS trajectory representation
-        mmsis, indicies, longitudes, latitudes = [], [], [], []
+        mmsis, indicies, data_set_indicies, longitudes, latitudes = [], [], [], [], []
         ship_types, track_lengths, times = [], [], []
         for i in range(0, len(data_set)):
-            mmsi, time, ship_type_label, track_length, inputs, target = data_set[i]
+            (
+                data_set_index,
+                file_location_index,
+                mmsi,
+                time,
+                ship_type,
+                track_length,
+                inputs,
+                target,
+            ) = data_set[i]
 
             # The targets are the actual tracks (not centered)
             lon, lat = plotting.PlotDatasetTrack(target, data_set.data_info["binedges"])
@@ -197,15 +206,15 @@ def get_tracks_from_dataset(
             latitudes.extend(lat)
             n = len(lat)
             indicies += [data_set.indicies[i]] * n
+            data_set_indicies += [i] * n
             mmsis += [mmsi.item()] * n
-            ship_types += [
-                dataset_utils.convertShipLabelToType(ship_type_label.item())
-            ] * n
+            ship_types += [dataset_utils.convertShipLabelToType(ship_type.item())] * n
             times += list(time)
 
             track_lengths += [track_length.item()] * n
         df = pd.DataFrame(
             {
+                "Data set Index": data_set_indicies,
                 "Index": indicies,
                 "MMSI": mmsis,
                 "Longitude": longitudes,
