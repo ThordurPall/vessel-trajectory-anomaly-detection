@@ -3,6 +3,7 @@ import pickle
 import matplotlib.pyplot as plt
 import pandas as pd
 
+import src.utils.dataset_utils as dataset_utils
 import src.utils.plotting as plotting
 
 
@@ -92,8 +93,8 @@ def read_data_info_file(data_info_file):
 
 
 def get_track_by_index(
-    path=None,
-    idx=None,
+    path,
+    idx,
     keep_cols=None,
     col_names=None,
     data_set=None,
@@ -103,10 +104,10 @@ def get_track_by_index(
 
     Parameters
     ----------
-    path : pathlib.WindowsPath (Defaults to None)
+    path : pathlib.WindowsPath
         Location of the file to read
 
-    idx : int (Defaults to None)
+    idx : int
         Where to start reading the data file
 
     keep_cols : list (Defaults to None)
@@ -114,9 +115,6 @@ def get_track_by_index(
 
     col_names : list (Defaults to None)
         The column names to use for the returned data frame
-
-    data_set : src.data.Datasets.AISDiscreteRepresentation (Defaults to None)
-        The data set to use to read in the track
 
     continuous_representation : bool (Defaults to True)
             Either continuous or discrete AIS trajectory representation
@@ -126,31 +124,100 @@ def get_track_by_index(
     pandas.DataFrame
         Data frame with the requested trajectory
     """
-    if continuous_representation and path is not None and idx is not None:
+    if not continuous_representation:
+        print("Not implmented")
+
+    else:
+        # Default to continuous AIS trajectory representation
         with open(path, "rb") as f:
             f.seek(idx)
             track = pickle.load(f)
         df = pd.DataFrame(track)
+        df["Index"] = idx
+        df.columns = [
+            "MMSI",
+            "Ship type",
+            "Track length",
+            "Latitude",
+            "Longitude",
+            "Speed",
+            "Course",
+            "Heading",
+            "Time stamp",
+            "Index",
+        ]
 
-        if keep_cols is not None:
-            df = df[keep_cols]
-        if col_names is not None:
-            df.columns = col_names
-    elif not continuous_representation and data_set is not None:
-        Longitude, Latitude = [], []
+    if keep_cols is not None:
+        df = df[keep_cols]
+    if col_names is not None:
+        df.columns = col_names
+    return df
+
+
+def get_tracks_from_dataset(
+    data_set,
+    keep_cols=None,
+    col_names=None,
+    continuous_representation=True,
+):
+    """Get the requested track - Read from a data set to a data frame
+
+    Parameters
+    ----------
+    data_set : src.data.Datasets.AISRepresentation
+        The data set to use to read in the track
+
+    keep_cols : list (Defaults to None)
+        The columns to keep
+
+    col_names : list (Defaults to None)
+        The column names to use for the returned data frame
+
+    continuous_representation : bool (Defaults to True)
+            Either continuous or discrete AIS trajectory representation
+
+    Returns
+    ----------
+    pandas.DataFrame
+        Data frame with the requested trajectory
+    """
+    if continuous_representation:
+        print("Not implmented")
+
+    else:
+        # Discrete AIS trajectory representation
+        mmsis, indicies, longitudes, latitudes = [], [], [], []
+        ship_types, track_lengths, times = [], [], []
         for i in range(0, len(data_set)):
             mmsi, time, ship_type_label, track_length, inputs, target = data_set[i]
 
             # The targets are the actual tracks (not centered)
             lon, lat = plotting.PlotDatasetTrack(target, data_set.data_info["binedges"])
-            Longitude.extend(lon)
-            Latitude.extend(lat)
+            longitudes.extend(lon)
+            latitudes.extend(lat)
+            n = len(lat)
+            indicies += [data_set.indicies[i]] * n
+            mmsis += [mmsi.item()] * n
+            ship_types += [
+                dataset_utils.convertShipLabelToType(ship_type_label.item())
+            ] * n
+            times += list(time)
 
-        df = pd.DataFrame({"Longitude": Longitude, "Latitude": Latitude})
-
-    else:
-        print(
-            "Either use continuous representation with path and idx or discrete with data_set"
+            track_lengths += [track_length.item()] * n
+        df = pd.DataFrame(
+            {
+                "Index": indicies,
+                "MMSI": mmsis,
+                "Longitude": longitudes,
+                "Latitude": latitudes,
+                "Ship type": ship_types,
+                "Track length": track_lengths,
+                "Time stamp": times,
+            }
         )
-        df = -1
+
+    if keep_cols is not None:
+        df = df[keep_cols]
+    if col_names is not None:
+        df.columns = col_names
     return df

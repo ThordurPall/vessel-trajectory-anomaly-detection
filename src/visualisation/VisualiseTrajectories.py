@@ -273,10 +273,17 @@ class VisualiseTrajectories:
         logger = logging.getLogger(__name__)  # For logging information
 
         # Define the colors to use
+        df_lon_lat = df_lon_lat.copy()
         n = len(df_lon_lat.index)
         cmap = plt.cm.cividis  # Blue in the beginning and yellow in the end
         colors = [cmap(float(i) / (n - 1)) for i in range(n - 1)]
 
+        # Ensure that no longitude or latitude values are exactly the same
+        eps = [0.000000001 * i for i in range(n)]
+        df_lon_lat["Longitude"] = df_lon_lat["Longitude"] + eps
+        df_lon_lat["Latitude"] = df_lon_lat["Latitude"] + eps
+
+        # Plot the trajectory on a map
         if not use_cmap:
             logger.info(
                 "Plotting a line with the order that observations appear in the dataset"
@@ -358,7 +365,7 @@ class VisualiseTrajectories:
         ax,
         indicies=None,
         data_path=None,
-        df_lon_lat=None,
+        df=None,
         use_cmap=False,
         color=None,
         plot_start=True,
@@ -383,7 +390,7 @@ class VisualiseTrajectories:
 
         df : pandas.DataFrame (Defaults to None)
             Data frame of the longitudes and latitudes to plot and a unique
-            trajectory id. Either indicies or df_lon_lat must be non None
+            trajectory id. Either indicies or df must be non None
 
         use_cmap : bool (defaults to False)
             When False, uses a single color for the entire trajectory. Uses the color
@@ -406,31 +413,29 @@ class VisualiseTrajectories:
             When True, a progressbar.progressbar will be used when plotting points
 
         """
-        if indicies is not None:
-            # Keep track of trajectory information and turn off save/plot for now
-            trajectories = []
-            save_tmp = self.save_figures
-            plot_tmp = self.plot_figures
-            self.save_figures = False
-            self.plot_figures = False
+        # Keep track of trajectory information and turn off save/plot for now
+        trajectories = []
+        self.save_figures = False
+        self.plot_figures = False
+        save_tmp = self.save_figures
+        plot_tmp = self.plot_figures
 
+        if indicies is not None:
+            # When only the indicies are given
             for idx in indicies[:-1]:
                 df = utils.get_track_by_index(
                     data_path, idx, keep_cols=None, col_names=None
                 )
                 trajectories.append(
                     [
-                        df["mmsi"][0],
-                        df["track_length"][0],
-                        df["timestamp"][0],
-                        df["timestamp"].iloc[-1],
+                        df["MMSI"][0],
+                        df["Track length"][0],
+                        df["Time stamp"][0],
+                        df["Time stamp"].iloc[-1],
                     ]
                 )
                 df_lon_lat = utils.get_track_by_index(
-                    data_path,
-                    idx,
-                    keep_cols=["lon", "lat"],
-                    col_names=["Longitude", "Latitude"],
+                    data_path, idx, keep_cols=["Longitude", "Latitude"]
                 )
                 self.plot_single_track(
                     df_lon_lat,
@@ -442,33 +447,83 @@ class VisualiseTrajectories:
                     s=s,
                     progress_bar=progress_bar,
                 )
+
             # Plot the last trajectory and save the results
             self.save_figures = save_tmp
             self.plot_figures = plot_tmp
             df = utils.get_track_by_index(data_path, indicies[-1])
             trajectories.append(
                 [
-                    df["mmsi"][0],
-                    df["track_length"][0],
-                    df["timestamp"][0],
-                    df["timestamp"].iloc[-1],
+                    df["MMSI"][0],
+                    df["Track length"][0],
+                    df["Time stamp"][0],
+                    df["Time stamp"].iloc[-1],
                 ]
             )
             df_lon_lat = utils.get_track_by_index(
                 data_path,
                 indicies[-1],
-                keep_cols=["lon", "lat"],
-                col_names=["Longitude", "Latitude"],
+                keep_cols=["Longitude", "Latitude"],
             )
             return pd.DataFrame(
                 trajectories,
-                columns=["MMSI", "TrackLength", "DateTimeStart", "DateTimeEnd"],
+                columns=["MMSI", "Track length", "Date time start", "Date time end"],
             )
-        elif df_lon_lat is not None:
-            print("TODO")
-            return df_lon_lat
+        elif df is not None:
+            # When the actual data set to plot is given
+            indicies = df["Index"].unique()
+            for idx in indicies[:-1]:
+                df_idx = df.loc[df["Index"] == idx]
+                trajectories.append(
+                    [
+                        df_idx.iloc[0]["MMSI"],
+                        df_idx.iloc[0]["Track length"],
+                        df_idx.iloc[0]["Time stamp"],
+                        df_idx.iloc[-1]["Time stamp"],
+                    ]
+                )
+                self.plot_single_track(
+                    df_idx,
+                    ax,
+                    use_cmap=use_cmap,
+                    color=color,
+                    plot_start=plot_start,
+                    plot_end=plot_end,
+                    s=s,
+                    progress_bar=progress_bar,
+                )
+
+            # Plot the last trajectory and save the results
+            self.save_figures = save_tmp
+            self.plot_figures = plot_tmp
+            id = indicies[-1]
+            df_idx = df.loc[df["Index"] == idx]
+            trajectories.append(
+                [
+                    df_idx.iloc[0]["MMSI"],
+                    df_idx.iloc[0]["Track length"],
+                    df_idx.iloc[0]["Time stamp"],
+                    df_idx.iloc[-1]["Time stamp"],
+                ]
+            )
+            self.plot_single_track(
+                df_idx,
+                ax,
+                use_cmap=use_cmap,
+                color=color,
+                plot_start=plot_start,
+                plot_end=plot_end,
+                s=s,
+                progress_bar=progress_bar,
+            )
+            return pd.DataFrame(
+                trajectories,
+                columns=["MMSI", "Track length", "Date time start", "Date time end"],
+            )
         else:
             print("Either indicies or df_lon_lat must be provided")
+            self.save_figures = save_tmp
+            self.plot_figures = plot_tmp
 
     def read_visualise_static_map(self):
         """Gets an already created static Google Maps map for the ROI and plots it
