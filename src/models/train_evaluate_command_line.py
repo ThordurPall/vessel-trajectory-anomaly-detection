@@ -13,31 +13,40 @@ def main():
     file_name = "RegionBornholm_01062019_30092019_FishCargTank_14400_86400_600"
     fishing_file = "RegionBornholm_01062019_30092019_Fish_14400_86400_600"
     fishing_new_file = "RegionBornholm_01052019_31052019_Fish_14400_86400_600"
-    print(
-        "Train Default FishCargTank: --------------------------------------------------------"
-    )
-    train1 = TrainEvaluate(
-        file_name, fishing_file=fishing_file, fishing_new_file=fishing_new_file
-    )
-    train1.train_VRNN()
+    # print(
+    #    "Train Default FishCargTank: --------------------------------------------------------"
+    # )
+    # train1 = TrainEvaluate(
+    #    file_name, fishing_file=fishing_file, fishing_new_file=fishing_new_file
+    # )
+    # train1.train_VRNN()
 
-    file_name = "RegionBornholm_01062019_30092019_CargTank_14400_86400_600"
-    print(
-        "Train Default CargTank: --------------------------------------------------------"
-    )
-    train2 = TrainEvaluate(
-        file_name, fishing_file=fishing_file, fishing_new_file=fishing_new_file
-    )
-    train2.train_VRNN()
+    # file_name = "RegionBornholm_01062019_30092019_CargTank_14400_86400_600"
+    # print(
+    #    "Train Default CargTank: --------------------------------------------------------"
+    # )
+    # train2 = TrainEvaluate(
+    #    file_name, fishing_file=fishing_file, fishing_new_file=fishing_new_file
+    # )
+    # train2.train_VRNN()
 
-    file_name = "RegionBornholm_01062019_30092019_Fish_14400_86400_600"
+    # file_name = "RegionBornholm_01062019_30092019_Fish_14400_86400_600"
+    # print(
+    #    "Train Default Fish: --------------------------------------------------------"
+    # )
+    # train3 = TrainEvaluate(
+    #    file_name, fishing_file=fishing_file, fishing_new_file=fishing_new_file
+    # )
+    # train3.train_VRNN()
+
+    file_name = "RegionBornholm_01062019_30092019_Fish_14400_86400_600_Injected"
     print(
-        "Train Default Fish: --------------------------------------------------------"
+        "Train Default Fish with Cargo : --------------------------------------------------------"
     )
-    train3 = TrainEvaluate(
+    train4 = TrainEvaluate(
         file_name, fishing_file=fishing_file, fishing_new_file=fishing_new_file
     )
-    train3.train_VRNN()
+    train4.train_VRNN()
 
 
 if __name__ == "__main__":

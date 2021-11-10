@@ -140,7 +140,11 @@ class ProcessData:
         ]
 
         # Define the file name to save the results
-        cargo_injected = "_Injected" if inject_cargo_proportion != 0.0 else ""
+        cargo_injected = (
+            "_Injected" + str(inject_cargo_proportion).replace(".", "")
+            if inject_cargo_proportion != 0.0
+            else ""
+        )
         result_file_name = (
             "Region"
             + self.region
