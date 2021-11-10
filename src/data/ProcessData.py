@@ -185,7 +185,6 @@ class ProcessData:
         )
 
         # With the trajectories, now randomly make the train, validation and test set splits
-        # Thordur Check if I can set all the cargo to the training set
         n = int(len(trajectories["indicies"]) * (1.0 - train_proportion))
         val_test_indices = np.random.choice(
             trajectories["indicies"], size=n, replace=False
