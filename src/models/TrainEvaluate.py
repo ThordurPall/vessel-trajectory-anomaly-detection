@@ -864,16 +864,20 @@ class TrainEvaluate:
         input = input.to(self.device)
         target_device = target.to(self.device)
 
-        # Use the pretrained model
+        # Initialize a variable to keep track the logits from the model. The dimension
+        # here are the sequence length (t) X 1 (one sample) X input data dimension
         logits = torch.zeros(
             length.int().item(), 1, data_set.data_dim, device=self.device
         )
+
+        # Use the pretrained model
         log_px, _, _, logits, _, _, _, _ = self.model(
             input.unsqueeze(0), target_device.unsqueeze(0), logits=logits
         )
         logits = logits.cpu()
 
         # Go from the log odds to a four hot encoded discrete representation
+        # Each of lat/lon/speed/course will be one at the max logit but zero everywhere else
         reconstruction_discrete = plotting.logitToTrack(
             logits, data_set.data_info["binedges"]
         )
