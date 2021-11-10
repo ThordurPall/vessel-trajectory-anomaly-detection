@@ -73,6 +73,8 @@ class ReparameterizedDiagonalGaussian(Distribution):
         """
         Computes the log probability log p(z) under this distribution
 
+        Note: Remember to sum up on the corresponding dimension to actually get log probability
+
         Parameters
         ----------
         z : Tensor
