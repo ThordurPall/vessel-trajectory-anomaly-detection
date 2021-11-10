@@ -231,7 +231,13 @@ def dumpTrackToPickle(mmsi, shiptype, track, f):
     return index
 
 
-def createDataset(params, raw_data_dir, processed_data_dir, dataset_filename):
+def createDataset(
+    params,
+    raw_data_dir,
+    processed_data_dir,
+    dataset_filename,
+    inject_cargo_proportion=0.0,
+):
 
     # Determine the max and min updates. The max update should not be overly large since
     # when sequences get too long it can hinder learning (derivatives can get small).
@@ -250,6 +256,19 @@ def createDataset(params, raw_data_dir, processed_data_dir, dataset_filename):
         params["navstatuses"],
         raw_data_dir,
     )  # Returns a data frame with relevant "MMSI" and its "File" name
+
+    if inject_cargo_proportion != 0.0:
+        # Inject cargo ships in proportion to the MMSIS already defined
+        cargo_mmsis = getMMSIs(
+            params["ROI"],
+            params["maxspeed"],
+            params["timeperiod"],
+            ["Carg"],
+            params["navstatuses"],
+            raw_data_dir,
+        )
+        cargo_mmsis = cargo_mmsis.sample(int(mmsis.shape[0] * inject_cargo_proportion))
+        mmsis = pd.concat([mmsis, cargo_mmsis], ignore_index=True)
 
     dataFileName = processed_data_dir + "/data_" + dataset_filename + ".pkl"
     with open(dataFileName, "wb") as dataFile:

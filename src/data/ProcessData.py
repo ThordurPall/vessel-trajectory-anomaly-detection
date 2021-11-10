@@ -93,6 +93,7 @@ class ProcessData:
         split_track_length,
         train_proportion=0.8,
         test_proportion=0.1,
+        inject_cargo_proportion=0.0,
     ):
         """Process raw data into trajectories
 
@@ -121,6 +122,9 @@ class ProcessData:
             Proportion (0.0 <= test_proportion <= 1.0) of data to use for testing.
             The rest (1.0 - train_proportion - test_proportion) is used for validation
 
+        inject_cargo_proportion : float (Defaults to 0.0)
+            Inject cargo vessel MMSIS in inject_cargo_proportion proportion to the training MMSIs
+
         Returns
         -------
         str
@@ -136,6 +140,7 @@ class ProcessData:
         ]
 
         # Define the file name to save the results
+        cargo_injected = "_Injected" if inject_cargo_proportion != 0.0 else ""
         result_file_name = (
             "Region"
             + self.region
@@ -151,6 +156,7 @@ class ProcessData:
             + str(max_track_Length)
             + "_"
             + str(resample_frequency)
+            + cargo_injected
         )
         logger.info("Main part of data results file name: " + result_file_name)
 
@@ -175,9 +181,11 @@ class ProcessData:
             str(self.raw_data_dir),
             str(self.processed_data_dir),
             result_file_name,
+            inject_cargo_proportion,
         )
 
         # With the trajectories, now randomly make the train, validation and test set splits
+        # Thordur Check if I can set all the cargo to the training set
         n = int(len(trajectories["indicies"]) * (1.0 - train_proportion))
         val_test_indices = np.random.choice(
             trajectories["indicies"], size=n, replace=False

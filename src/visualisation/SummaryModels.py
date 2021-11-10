@@ -12,7 +12,7 @@ from src.models.TrainEvaluate import TrainEvaluate
 class SummaryModels:
     """
     A class used to handle everything related to visualising and providing
-    a summary of different model setups
+    a summary of different model setups and their reconstructions
 
     ...
 
