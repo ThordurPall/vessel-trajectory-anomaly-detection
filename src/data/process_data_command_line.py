@@ -16,11 +16,10 @@ def main():  # main(input_filepath, output_filepath):
     """
     logger = logging.getLogger(__name__)
     logger.info("Making final data set from raw data")
-
+    inject_cargo_proportion = 0.5
     process_data = ProcessData(
         # ["cargo", "tanker"],
-        # ["fishing"],
-        ["fishing", "cargo", "tanker"],
+        ["fishing"],
         "Bornholm",
         datetime.datetime.strptime("2019-06-01 00:00:00", "%Y-%m-%d %H:%M:%S"),
         datetime.datetime.strptime("2019-09-30 23:59:59", "%Y-%m-%d %H:%M:%S"),
@@ -42,7 +41,11 @@ def main():  # main(input_filepath, output_filepath):
     split_track_length = 120 * 60  # 120 minutes (2 hours)
 
     result_file_name = process_data.process_into_trajectories(
-        min_track_length, max_track_Length, resample_frequency, split_track_length
+        min_track_length,
+        max_track_Length,
+        resample_frequency,
+        split_track_length,
+        inject_cargo_proportion=inject_cargo_proportion,
     )
     print(result_file_name)
     # result_file_name = "RegionAll_01042019_31032020_Fish_600_2678400_60"
@@ -50,10 +53,10 @@ def main():  # main(input_filepath, output_filepath):
         result_file_name
     )
     print(summary_file_name)
-    lat_lon_file_name = process_data.process_trajectories_geographic_points(
-        result_file_name
-    )
-    print(lat_lon_file_name)
+    # lat_lon_file_name = process_data.process_trajectories_geographic_points(
+    #    result_file_name
+    # )
+    # print(lat_lon_file_name)
 
 
 if __name__ == "__main__":

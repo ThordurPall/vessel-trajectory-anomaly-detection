@@ -6,7 +6,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import torch
-from torch.utils.data import DataLoader
+from torch.functional import broadcast_shapes
+from torch.utils.data import ConcatDataset, DataLoader
 
 import src.models.VRNN as VRNN
 import src.utils.dataset_utils as dataset_utils
@@ -176,17 +177,65 @@ class TrainEvaluate:
 
         # Initialize the custom data sets - Create instances of AISDiscreteRepresentation
         logger.info("Initialize the custom data sets (AISDiscreteRepresentation)")
-        training_set = AISDiscreteRepresentation(file_name)
-        self.train_mean = training_set.mean
-        self.input_shape = training_set.data_dim
+
+        # Make sure that the same fishing training (when training on fishing vessels),
+        # validation, and test sets are always used
+        if "FishCargTank" in file_name:
+            self.is_FishCargTank = True
+
+            # Handle this case to always use the same fishing vessel for training
+            file_name_fish = file_name.replace("FishCargTank", "Fish")
+            file_name_carg_tank = file_name.replace("FishCargTank", "CargTank")
+
+            # Load the fishing vessel only and cargo/tanker only training sets
+            training_set_fish = AISDiscreteRepresentation(file_name_fish)
+            training_set_carg_tank = AISDiscreteRepresentation(file_name_carg_tank)
+
+            # Combine the two data sets and update the mean values to the overall training mean value
+            training_set = ConcatDataset([training_set_fish, training_set_carg_tank])
+            self.train_mean = (
+                len(training_set_fish) * training_set_fish.mean
+                + len(training_set_carg_tank) * training_set_carg_tank.mean
+            ) / len(training_set)
+            training_set_fish.mean = self.train_mean
+            training_set_carg_tank.mean = self.train_mean
+            self.input_shape = training_set_carg_tank.data_dim
+        else:
+            training_set = AISDiscreteRepresentation(file_name)
+            self.train_mean = training_set.mean
+            self.input_shape = training_set.data_dim
         self.training_n = len(training_set)
-        validation_set = AISDiscreteRepresentation(
-            file_name, self.train_mean, validation=True
-        )
+        self.batch_size = batch_size
+
+        # Also make sure to always use the same fishing vessel for validation and test
+        if self.is_FishCargTank:
+            # Load the fishing vessel only and cargo/tanker only validation/test sets
+            validation_set_fish = AISDiscreteRepresentation(
+                file_name_fish, self.train_mean, validation=True
+            )
+            validation_set_carg_tank = AISDiscreteRepresentation(
+                file_name_carg_tank, self.train_mean, validation=True
+            )
+            test_set_fish = AISDiscreteRepresentation(
+                file_name_fish, self.train_mean, validation=False
+            )
+            test_set_carg_tank = AISDiscreteRepresentation(
+                file_name_carg_tank, self.train_mean, validation=False
+            )
+
+            # Combine the two validation/test data sets
+            validation_set = ConcatDataset(
+                [validation_set_fish, validation_set_carg_tank]
+            )
+            test_set = ConcatDataset([test_set_fish, test_set_carg_tank])
+        else:
+            validation_set = AISDiscreteRepresentation(
+                file_name, self.train_mean, validation=True
+            )
+            test_set = AISDiscreteRepresentation(
+                file_name, self.train_mean, validation=False
+            )
         self.validation_n = len(validation_set)
-        test_set = AISDiscreteRepresentation(
-            file_name, self.train_mean, validation=False
-        )
         self.test_n = len(test_set)
 
         # Define the training, validation, and test DataLoaders
@@ -289,7 +338,7 @@ class TrainEvaluate:
         # Define the neural network model that has some learnable parameters (or weights)
         # Initialize the variational recurrent neural network
         self.model = VRNN.VRNN(
-            input_shape=training_set.data_dim,
+            input_shape=self.input_shape,
             latent_shape=latent_dim,
             recurrent_shape=recurrent_dim,
             batch_norm=batch_norm,
@@ -391,7 +440,9 @@ class TrainEvaluate:
         loss = torch.mean(loss / lengths)  # This function should be maximized
         return -loss, log_px, KL, curmask
 
-    def train_loop(self, optimizer, beta_weight, kl_weight_step, kl_weight):
+    def train_loop(
+        self, optimizer, beta_weight, kl_weight_step, kl_weight, opt_steps, num_samples
+    ):
         """The Train Loop:
         Iterate over the training data set and try to converge to optimal parameters.
         Inside the training loop, optimization happens in three steps:
@@ -413,6 +464,12 @@ class TrainEvaluate:
 
         kl_weight : int
             Maximum weight of the Kullback–Leibler divergence loss
+
+        opt_steps : int
+            Current number of optimization steps taken
+
+        num_samples : int
+            The current number of training samples already processed
 
         Returns
         -------
@@ -464,6 +521,10 @@ class TrainEvaluate:
             # Train the network by calculating the gradient w.r.t the cost function and update the parameters in direction of the negative gradient
             optimizer.step()  # Parameters are updated each time optimizer.step() is called
 
+            # Keep track of the number of optimization steps and number of samples processed
+            opt_steps += 1
+            num_samples += len(lengths)
+
             # Variables for KL anneling (when included) - By default KL annealing is not introduced
             beta_weight += kl_weight_step
             beta_weight = min(beta_weight, kl_weight)
@@ -476,6 +537,8 @@ class TrainEvaluate:
             kl_epoch / self.training_n,
             recon_epoch / self.training_n,
             beta_weight,
+            opt_steps,
+            num_samples,
         ]
 
     def evaluate_loop(self, data_loader, data_n, beta_weight=1):
@@ -561,6 +624,8 @@ class TrainEvaluate:
         kl=None,
         recon=None,
         name_prefix="",
+        level=None,
+        level_values=None,
     ):
         """Stores the training and validation learning curves as a .csv file
 
@@ -592,6 +657,12 @@ class TrainEvaluate:
 
         name_prefix : str (Defaults to empty string)
             String that comes in front of the saved file name
+
+        level : str (Defaults to None)
+            The level of the learning curve values (will be a column name in the data frame)
+
+        level_values : list (Defaults to None)
+            The actual value of the levels (will be the values in the level data frame column)
         """
         # Check if both the training and validation curves should be stored or only validation
         if loss is not None and kl is not None and recon is not None:
@@ -613,6 +684,10 @@ class TrainEvaluate:
                     "Validation_Reconstruction": val_recon,
                 }
             )
+
+        if level is not None and level_values is not None:
+            training_curves[level] = level_values
+
         training_curves.to_csv(
             dir / (name_prefix + self.model_name + "_curves.csv"),
             index=False,
@@ -625,6 +700,8 @@ class TrainEvaluate:
         kl_weight=1,
         kl_anneling_start=1,
         use_scheduler=False,
+        num_opt_steps=None,
+        num_training_samples=None,
     ):
         """Train (and validate with validation set) a deep learning VRNN model
 
@@ -662,17 +739,30 @@ class TrainEvaluate:
         use_scheduler : bool (Defaults to False)
             When set to true a Scheduler will be introduced and used
 
+        num_opt_steps : int (Defaults to None)
+            Total nmber of optimization steps to perform during training. When this is not None,
+            the num_epoch will be ignored and calculated based on num_opt_steps
+
+        num_training_samples : int (Defaults to None)
+            Total nmber of training samples to process during training. When this is not None,
+            the num_epoch will be ignored and calculated based on num_training_samples
+
         Returns
         -------
         model : src.models.VRNN
             The trained VRNN model
         """
         logger = logging.getLogger(__name__)  # For logging information
-        validation_set = self.validation_dataloader.dataset
 
         # Define the optimizer -  Optimization is the process of adjusting model parameters
         # to reduce model error in each training step.  All optimization logic is encapsulated in the optimizer object
         optimizer = torch.optim.Adam(self.model.parameters(), lr=learning_rate)
+
+        # Calculate the number of epoch to run when num_opt_steps or num_training_samples are given
+        if num_opt_steps is not None:
+            num_epochs = int(np.ceil(num_opt_steps * self.batch_size / self.training_n))
+        elif num_training_samples is not None:
+            num_epochs = int(np.ceil(num_training_samples / self.training_n))
 
         if use_scheduler:
             # Using a  scheduler
@@ -683,16 +773,24 @@ class TrainEvaluate:
                 optimizer, milestones=[2, 10, 20], gamma=0.3
             )
 
-        # Keep track of losses, KL divergence, and reconstructions
+        # Keep track of losses, KL divergence, and reconstructions on an epoch level
         loss_tot, kl_tot, recon_tot = [], [], []
         val_loss_tot, val_kl_tot, val_recon_tot = [], [], []
 
+        # Keep track of the number of optimization steps and number of samples processed
+        opt_steps = 0
+        num_samples = 0
+        opt_steps_all = []
+        num_samples_all = []
+
         if self.evaluate_on_fishing_vessles:
             # Also validate on fishing vessels only and keep track of those values
+            # Keep track of losses, KL divergence, and reconstructions on an epoch level
             fish_val_loss_tot, fish_val_kl_tot, fish_val_recon_tot = [], [], []
 
         if self.evaluate_on_new_fishing_vessles:
             # Also validate on new (different ROI/dates) fishing vessels only and keep track of those values
+            # Keep track of losses, KL divergence, and reconstructions on an epoch level
             fish_new_val_loss_tot = []
             fish_new_val_kl_tot = []
             fish_new_val_recon_tot = []
@@ -714,12 +812,19 @@ class TrainEvaluate:
             logger.info(f"Epoch {epoch} Start ----------------------------------------")
             logger.info("Run the training loop")
             train_results = self.train_loop(
-                optimizer, beta_weight, kl_weight_step, kl_weight
+                optimizer,
+                beta_weight,
+                kl_weight_step,
+                kl_weight,
+                opt_steps,
+                num_samples,
             )
             loss_tot.append(train_results[0])
             kl_tot.append(train_results[1])
             recon_tot.append(train_results[2])
             beta_weight = train_results[3]
+            opt_steps_all.append(train_results[4])
+            num_samples_all.append(train_results[5])
 
             logger.info("Run the validation loop")
             val_results = self.evaluate_loop(
@@ -728,6 +833,8 @@ class TrainEvaluate:
             val_loss_tot.append(val_results[0])
             val_kl_tot.append(val_results[1])
             val_recon_tot.append(val_results[2])
+
+            # Keep track of losses, KL divergence, and reconstructions on step and sample level
 
             if self.evaluate_on_fishing_vessles:
                 # Also validate on a data set consisting only of fishing vessels
@@ -757,7 +864,16 @@ class TrainEvaluate:
                 scheduler.step()
 
             # Plot three random validation trajectories
-            datapoints = np.random.choice(self.validation_n, size=3, replace=False)
+            if self.is_FishCargTank:
+                # Select randomly either fishing or cargo/tankers to plot
+                validation_set = self.validation_dataloader.dataset
+                validation_set = validation_set.datasets[np.random.choice([0, 1])]
+                datapoints = np.random.choice(
+                    len(validation_set), size=3, replace=False
+                )
+            else:
+                validation_set = self.validation_dataloader.dataset
+                datapoints = np.random.choice(self.validation_n, size=3, replace=False)
             plotting.make_vae_plots(
                 (loss_tot, kl_tot, recon_tot, val_loss_tot, val_kl_tot, val_recon_tot),
                 self.model,
@@ -796,7 +912,7 @@ class TrainEvaluate:
         logger.info("Training End ----------------------------------------")
         logger.info("--- %s seconds to train ---" % (time.time() - start_time))
 
-        # Save the training and validation learning curves
+        # Save the training and validation learning curves on an epoch level
         self.save_training_curves(
             val_loss=val_loss_tot,
             val_kl=val_kl_tot,
@@ -805,6 +921,33 @@ class TrainEvaluate:
             loss=loss_tot,
             kl=kl_tot,
             recon=recon_tot,
+        )
+
+        # Save the training and validation learning curves on step and sample level
+        self.save_training_curves(
+            val_loss=val_loss_tot,
+            val_kl=val_kl_tot,
+            val_recon=val_recon_tot,
+            dir=self.model_dir,
+            loss=loss_tot,
+            kl=kl_tot,
+            recon=recon_tot,
+            name_prefix="opt_step_lvl_",
+            level="Number of optimiser steps",
+            level_values=opt_steps_all,
+        )
+
+        self.save_training_curves(
+            val_loss=val_loss_tot,
+            val_kl=val_kl_tot,
+            val_recon=val_recon_tot,
+            dir=self.model_dir,
+            loss=loss_tot,
+            kl=kl_tot,
+            recon=recon_tot,
+            name_prefix="sample_lvl_",
+            level="Number of training samples processed",
+            level_values=num_samples_all,
         )
 
         if self.evaluate_on_fishing_vessles:
@@ -816,6 +959,24 @@ class TrainEvaluate:
                 dir=self.model_dir,
                 name_prefix="Fishing_vessels_only_",
             )
+            self.save_training_curves(
+                val_loss=fish_val_loss_tot,
+                val_kl=fish_val_kl_tot,
+                val_recon=fish_val_recon_tot,
+                dir=self.model_dir,
+                name_prefix="Fishing_vessels_only_opt_step_lvl_",
+                level="Number of optimiser steps",
+                level_values=opt_steps_all,
+            )
+            self.save_training_curves(
+                val_loss=fish_val_loss_tot,
+                val_kl=fish_val_kl_tot,
+                val_recon=fish_val_recon_tot,
+                dir=self.model_dir,
+                name_prefix="Fishing_vessels_only_sample_lvl_",
+                level="Number of training samples processed",
+                level_values=num_samples_all,
+            )
 
         if self.evaluate_on_new_fishing_vessles:
             # Also save the validation learning curve for the new fishing vessels only
@@ -825,6 +986,24 @@ class TrainEvaluate:
                 val_recon=fish_new_val_recon_tot,
                 dir=self.model_dir,
                 name_prefix="New_Fishing_vessels_only_",
+            )
+            self.save_training_curves(
+                val_loss=fish_new_val_loss_tot,
+                val_kl=fish_new_val_kl_tot,
+                val_recon=fish_new_val_recon_tot,
+                dir=self.model_dir,
+                name_prefix="New_Fishing_vessels_only_opt_step_lvl_",
+                level="Number of optimiser steps",
+                level_values=opt_steps_all,
+            )
+            self.save_training_curves(
+                val_loss=fish_new_val_loss_tot,
+                val_kl=fish_new_val_kl_tot,
+                val_recon=fish_new_val_recon_tot,
+                dir=self.model_dir,
+                name_prefix="New_Fishing_vessels_only_sample_lvl_",
+                level="Number of training samples processed",
+                level_values=num_samples_all,
             )
 
         # Save the final (trained) model
