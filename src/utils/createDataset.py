@@ -241,9 +241,9 @@ def createDataset(
 
     # Determine the max and min updates. The max update should not be overly large since
     # when sequences get too long it can hinder learning (derivatives can get small).
-    if params["resampleFrequency"] == 0:
-        maxUpdates = params["maxTrackLength"]
-        minUpdates = params["minTrackLength"]
+    if params["resampleFrequency"] == 0:  # No resampling (take the actual AIS updates)
+        maxUpdates = 9 ** 9
+        minUpdates = 0
     else:
         maxUpdates = params["maxTrackLength"] / params["resampleFrequency"]
         minUpdates = params["minTrackLength"] / params["resampleFrequency"]
@@ -273,7 +273,6 @@ def createDataset(
         )
         cargo_mmsis = cargo_mmsis.sample(int(mmsis.shape[0] * inject_cargo_proportion))
         mmsis = pd.concat([mmsis, cargo_mmsis], ignore_index=True)
-
     dataFileName = processed_data_dir + "/data_" + dataset_filename + ".pkl"
     with open(dataFileName, "wb") as dataFile:
         print("Processing MMSIs")
@@ -285,7 +284,6 @@ def createDataset(
             # ReadAndJoinTracks for the list of all filepaths this MMSI has data in
             # Returns a data frame of AIS message attributes with the current nav status, as well as shipType
             data, shipType = ReadAndJoinTracks(tmp["File"].tolist())
-
             # Take only data in this ROI and timeperiod, with speed < maxspeed
             data = FilterDataFrame(
                 data, params["ROI"], params["maxspeed"], params["timeperiod"]
@@ -295,12 +293,16 @@ def createDataset(
             )  # Take out stationary updates (like "At anchor")
             data = SplitIntoTracks(data, params["splitTrackTimeDiff"])
 
-            # Remove short trracks since they might be really hard to learn
+            # Remove short tracks since they might be really hard to learn
             data = RemoveShortTracks(data, params["minTrackLength"], minUpdates)
 
             # Split based on tracknumber, so we are now looking at each trajectgory
             mmsiTracks = data.groupby("TrackNumber")
             for tracknum, track in mmsiTracks:
+                track["previous_timestamp"] = track["timestamp"].shift()
+                track["timestamp_difference"] = (
+                    track["timestamp"] - track["previous_timestamp"]
+                )
 
                 # Resample time-series data to resampleFrequency time between samples in seconds.
                 # Then linearly interpolate missing values in the track
@@ -316,6 +318,12 @@ def createDataset(
                         datetime.datetime.utcfromtimestamp
                     )
                     track = track.drop(columns="navstatus")
+
+                    # Calculate the maxUpdates from params["maxTrackLength"] and
+                    # mean time difference between observations
+                    maxUpdates = (
+                        params["maxTrackLength"] // track["timestamp_difference"].mean()
+                    )
 
                 if fixedLength == True:
                     groups = track.groupby(
