@@ -109,7 +109,8 @@ class ProcessData:
         resample_frequency : int
             Time between samples in seconds. Together max_track_Length and resample_frequency
             determine the max number of AIS attribute updates (max_track_Length/resample_frequency).
-            Overly long sequence (too many updates) can hinder learning
+            Overly long sequence (too many updates) can hinder learning. When resample_frequency=0,
+            all the actual AIS updates are used (not temporally equidistant).
 
         split_track_length : int
             Split tracks into two trajectories when the time difference between AIS update messages

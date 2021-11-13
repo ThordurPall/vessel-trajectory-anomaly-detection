@@ -371,10 +371,16 @@ class TrainEvaluate:
 
         # String that describes the model setup used
         batchNorm = "_batchNormTrue" if batch_norm else "_batchNormFalse"
+        cargo_injected = (
+            "_Injected" + str(inject_cargo_proportion).replace(".", "")
+            if inject_cargo_proportion != 0.0
+            else ""
+        )
         self.model_name = (
             "VRNN"
             + "_"
             + file_name
+            + cargo_injected
             + "_latent"
             + str(latent_dim)
             + "_recurrent"

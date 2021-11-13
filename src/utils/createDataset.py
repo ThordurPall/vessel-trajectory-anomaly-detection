@@ -241,8 +241,12 @@ def createDataset(
 
     # Determine the max and min updates. The max update should not be overly large since
     # when sequences get too long it can hinder learning (derivatives can get small).
-    maxUpdates = params["maxTrackLength"] / params["resampleFrequency"]
-    minUpdates = params["minTrackLength"] / params["resampleFrequency"]
+    if params["resampleFrequency"] == 0:
+        maxUpdates = params["maxTrackLength"]
+        minUpdates = params["minTrackLength"]
+    else:
+        maxUpdates = params["maxTrackLength"] / params["resampleFrequency"]
+        minUpdates = params["minTrackLength"] / params["resampleFrequency"]
 
     # Check if the max and min lengths are the same (so, we have fixed length trajectories)
     fixedLength = params["maxTrackLength"] == params["minTrackLength"]
@@ -300,7 +304,21 @@ def createDataset(
 
                 # Resample time-series data to resampleFrequency time between samples in seconds.
                 # Then linearly interpolate missing values in the track
-                track = InterpolateTrackAndResample(track, params["resampleFrequency"])
+                breakpoint()
+                if params["resampleFrequency"] != 0:
+                    track = InterpolateTrackAndResample(
+                        track, params["resampleFrequency"]
+                    )
+                else:
+                    track["timestamp"] = (
+                        track["timestamp"] + 1546300800
+                    )  # Add time between 1970 and 2019
+                    breakpoint()
+                    track["timestamp"] = track["timestamp"].apply(
+                        datetime.datetime.utcfromtimestamp
+                    )
+                    # df = df.reset_index(level=0, inplace=False)
+                breakpoint()
 
                 if fixedLength == True:
                     groups = track.groupby(
