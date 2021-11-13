@@ -6,7 +6,6 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import torch
-from torch.functional import broadcast_shapes
 from torch.utils.data import ConcatDataset, DataLoader
 
 import src.models.VRNN as VRNN
@@ -119,6 +118,7 @@ class TrainEvaluate:
         is_trained=False,
         fishing_file=None,
         fishing_new_file=None,
+        inject_cargo_proportion=0.0,
     ):
         """
         Parameters
@@ -154,6 +154,9 @@ class TrainEvaluate:
 
         fishing_new_file : str (Defaults to None)
             Name of the main part of a new fishing vessel only data file with a different ROI or dates (or both)
+
+        inject_cargo_proportion : float (Defaults to 0.0)
+            Inject additional cargo/tanker vessel trajectories in inject_cargo_proportion proportion to the training trajectories
         """
         logger = logging.getLogger(__name__)  # For logging information
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -180,10 +183,11 @@ class TrainEvaluate:
 
         # Make sure that the same fishing training (when training on fishing vessels),
         # validation, and test sets are always used
+        self.is_FishCargTank = False
         if "FishCargTank" in file_name:
             self.is_FishCargTank = True
 
-            # Handle this case to always use the same fishing vessel for training
+            # Handle this case to always use the same fishing vessels for training
             file_name_fish = file_name.replace("FishCargTank", "Fish")
             file_name_carg_tank = file_name.replace("FishCargTank", "CargTank")
 
@@ -204,6 +208,25 @@ class TrainEvaluate:
             training_set = AISDiscreteRepresentation(file_name)
             self.train_mean = training_set.mean
             self.input_shape = training_set.data_dim
+
+        if inject_cargo_proportion != 0.0:
+            # Inject additional cargo/tanker trajectories into the training set
+            file_name_carg_tank = file_name.replace("Fish", "CargTank")
+            training_set_carg_tank = AISDiscreteRepresentation(file_name_carg_tank)
+            indices = range(0, int(len(training_set) * inject_cargo_proportion))
+            training_set_carg_tank = torch.utils.data.Subset(
+                training_set_carg_tank, indices
+            )
+            self.train_mean = (
+                len(training_set) * training_set.mean
+                + len(training_set_carg_tank) * training_set_carg_tank.dataset.mean
+            ) / (len(training_set) + len(training_set_carg_tank))
+            training_set.train_mean = self.train_mean
+            training_set_carg_tank.train_mean = self.train_mean
+            training_set_carg_tank = torch.utils.data.Subset(
+                training_set_carg_tank, indices
+            )
+            training_set = ConcatDataset([training_set, training_set_carg_tank])
         self.training_n = len(training_set)
         self.batch_size = batch_size
 
@@ -823,8 +846,10 @@ class TrainEvaluate:
             kl_tot.append(train_results[1])
             recon_tot.append(train_results[2])
             beta_weight = train_results[3]
-            opt_steps_all.append(train_results[4])
-            num_samples_all.append(train_results[5])
+            opt_steps = train_results[4]
+            opt_steps_all.append(opt_steps)
+            num_samples = train_results[5]
+            num_samples_all.append(num_samples)
 
             logger.info("Run the validation loop")
             val_results = self.evaluate_loop(
@@ -833,8 +858,6 @@ class TrainEvaluate:
             val_loss_tot.append(val_results[0])
             val_kl_tot.append(val_results[1])
             val_recon_tot.append(val_results[2])
-
-            # Keep track of losses, KL divergence, and reconstructions on step and sample level
 
             if self.evaluate_on_fishing_vessles:
                 # Also validate on a data set consisting only of fishing vessels

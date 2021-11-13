@@ -3,7 +3,7 @@ import logging
 
 import click
 
-from src.models.TrainEvaluate import TrainEvaluate
+from src.models.TrainEvaluate2 import TrainEvaluate2
 
 
 @click.command()
@@ -21,6 +21,7 @@ def main():
     # )
     # train1.train_VRNN()
 
+    num_opt_steps = 22700
     # file_name = "RegionBornholm_01062019_30092019_CargTank_14400_86400_600"
     # print(
     #    "Train Default CargTank: --------------------------------------------------------"
@@ -28,25 +29,28 @@ def main():
     # train2 = TrainEvaluate(
     #    file_name, fishing_file=fishing_file, fishing_new_file=fishing_new_file
     # )
-    # train2.train_VRNN()
+    # train2.train_VRNN(num_opt_steps=num_opt_steps)
 
-    # file_name = "RegionBornholm_01062019_30092019_Fish_14400_86400_600"
-    # print(
-    #    "Train Default Fish: --------------------------------------------------------"
-    # )
-    # train3 = TrainEvaluate(
-    #    file_name, fishing_file=fishing_file, fishing_new_file=fishing_new_file
-    # )
-    # train3.train_VRNN()
-
-    file_name = "RegionBornholm_01062019_30092019_Fish_14400_86400_600_Injected"
+    file_name = "RegionBornholm_01062019_30092019_Fish_14400_86400_600"
     print(
-        "Train Default Fish with Cargo : --------------------------------------------------------"
+        "Train Default Fish: --------------------------------------------------------"
     )
-    train4 = TrainEvaluate(
+    train3 = TrainEvaluate2(
         file_name, fishing_file=fishing_file, fishing_new_file=fishing_new_file
     )
-    train4.train_VRNN()
+    train3.train_VRNN(num_opt_steps=num_opt_steps)
+
+    # inject_cargo_proportion = 0.05
+    # print(
+    #    f"Train Default Fish (injected {inject_cargo_proportion}): --------------------------------------------------------"
+    # )
+    # train4 = TrainEvaluate(
+    #    file_name,
+    #    fishing_file=fishing_file,
+    #    fishing_new_file=fishing_new_file,
+    #    inject_cargo_proportion=inject_cargo_proportion,
+    # )
+    # train4.train_VRNN(num_opt_steps=num_opt_steps)
 
 
 if __name__ == "__main__":
