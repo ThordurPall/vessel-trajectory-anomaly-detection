@@ -119,6 +119,7 @@ class SummaryModels:
         self.save_figures = save_figures
         self.plot_figures = plot_figures
         self.fig_size = fig_size
+        self.model_prefix = model_prefix
 
         # Setup the correct foldure structure
         project_dir = Path(__file__).resolve().parents[2]
@@ -156,7 +157,7 @@ class SummaryModels:
         style.use("seaborn-colorblind")
         sns.set_style("ticks")
 
-    def load_curves_df(self, setup_type, validation_only=False):
+    def load_curves_df(self, setup_type, validation_only=False, level="Epoch"):
         """Read in the training/validation curves for the current setup
 
         Parameters
@@ -167,12 +168,36 @@ class SummaryModels:
         validation_only : bool (Defaults to False)
             When True, only the validation curves are returned
 
+        level : str (Defaults to 'Epoch')
+            The level of the learning curve values ('Epoch'/'Sample'/'Step')
+
         Returns
         -------
         pandas.DataFrame
             Data frame containing the learning curves
         """
-        curves_file = self.model_name + "_curves.csv"
+        # Figure out the correct .csv file to read
+        if level == "Step":
+            level = "Number of optimiser steps"
+            if self.model_prefix == "":
+                curves_file = "opt_step_lvl_" + self.model_name
+            else:
+                curves_file = self.model_name.replace(
+                    self.model_prefix, self.model_prefix + "opt_step_lvl_"
+                )
+        elif level == "Sample":
+            level = "Number of training samples processed"
+            if self.model_prefix == "":
+                curves_file = "sample_lvl_" + self.model_name
+            else:
+                curves_file = self.model_name.replace(
+                    self.model_prefix, self.model_prefix + "sample_lvl_"
+                )
+        else:
+            curves_file = self.model_name
+        curves_file += "_curves.csv"
+
+        # Read the file and setup the data frame
         df = pd.read_csv(self.model_dir / curves_file)
         if validation_only:
             df_val = df.iloc[:, 0:3].copy()
@@ -180,8 +205,14 @@ class SummaryModels:
             df_val = df.iloc[:, 3:6].copy()
         df_val.columns = ["Loss", "KL divergence", "Reconstruction log probabilities"]
         df_val["Data set type"] = "Validation"
-        df_val["Epoch"] = df_val.index + 1
 
+        # Add the level to the data frame
+        if level == "Epoch":
+            df_val["Epoch"] = df_val.index + 1
+        else:
+            df_val[level] = df[level].copy()
+
+        # Add the training curves when requested
         if not validation_only:
             df_train = df.iloc[:, 0:3].copy()
             df_train.columns = [
@@ -190,7 +221,11 @@ class SummaryModels:
                 "Reconstruction log probabilities",
             ]
             df_train["Data set type"] = "Training"
-            df_train["Epoch"] = df_val.index + 1
+            # Add the level to the data frame
+            if level == "Epoch":
+                df_train["Epoch"] = df_val.index + 1
+            else:
+                df_train[level] = df[level].copy()
             df = pd.concat([df_train, df_val])
         else:
             df = df_val
@@ -208,6 +243,7 @@ class SummaryModels:
         xlims=None,
         ylims=None,
         fig_size=(18, 5),
+        x="Epoch",
     ):
         """Plots the loss, KL divergence, and reconstruction log probabilities side by side
 
@@ -236,9 +272,11 @@ class SummaryModels:
 
         fig_size : tuple
             The overall figure size
+
+        x : str (Defaults to "Epoch")
+            The x-axis variable
         """
         _, ax = plt.subplots(1, 3, figsize=fig_size)
-        x = "Epoch"
         sns.lineplot(x=x, y="Loss", hue=hue, hue_order=hue_order, data=df, ax=ax[0])
         sns.lineplot(
             x=x, y="KL divergence", hue=hue, hue_order=hue_order, data=df, ax=ax[1]
