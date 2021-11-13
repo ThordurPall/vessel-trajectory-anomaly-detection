@@ -304,7 +304,6 @@ def createDataset(
 
                 # Resample time-series data to resampleFrequency time between samples in seconds.
                 # Then linearly interpolate missing values in the track
-                breakpoint()
                 if params["resampleFrequency"] != 0:
                     track = InterpolateTrackAndResample(
                         track, params["resampleFrequency"]
@@ -313,12 +312,10 @@ def createDataset(
                     track["timestamp"] = (
                         track["timestamp"] + 1546300800
                     )  # Add time between 1970 and 2019
-                    breakpoint()
                     track["timestamp"] = track["timestamp"].apply(
                         datetime.datetime.utcfromtimestamp
                     )
-                    # df = df.reset_index(level=0, inplace=False)
-                breakpoint()
+                    track = track.drop(columns="navstatus")
 
                 if fixedLength == True:
                     groups = track.groupby(
