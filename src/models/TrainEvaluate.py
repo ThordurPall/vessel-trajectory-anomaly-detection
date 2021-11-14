@@ -119,6 +119,7 @@ class TrainEvaluate:
         fishing_file=None,
         fishing_new_file=None,
         inject_cargo_proportion=0.0,
+        intermediate_epoch=None,
     ):
         """
         Parameters
@@ -157,6 +158,9 @@ class TrainEvaluate:
 
         inject_cargo_proportion : float (Defaults to 0.0)
             Inject additional cargo/tanker vessel trajectories in inject_cargo_proportion proportion to the training trajectories
+
+        intermediate_epoch : int (Defaults to None)
+            When not None, the intermediate model saved at epoch intermediate_epoch will be loaded
         """
         logger = logging.getLogger(__name__)  # For logging information
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -391,7 +395,12 @@ class TrainEvaluate:
 
         if is_trained:
             # Load the previously trained model
-            model_path = self.model_dir / (self.model_name + ".pth")
+            if intermediate_epoch is not None:
+                model_path = self.model_intermediate_dir / (
+                    self.model_name + "_" + str(intermediate_epoch) + ".pth"
+                )
+            else:
+                model_path = self.model_dir / (self.model_name + ".pth")
             logger.info("Loading previously trained model: " + str(model_path))
             self.model.load_state_dict(torch.load(model_path, map_location=self.device))
             self.model.to(self.device)
