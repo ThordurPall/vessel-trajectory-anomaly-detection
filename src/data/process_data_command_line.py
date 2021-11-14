@@ -16,12 +16,12 @@ def main():  # main(input_filepath, output_filepath):
     """
     logger = logging.getLogger(__name__)
     logger.info("Making final data set from raw data")
-    inject_cargo_proportion = 0.5
     process_data = ProcessData(
-        # ["cargo", "tanker"],
-        ["fishing"],
+        ["cargo", "tanker"],
+        # ["fishing"],
         "Bornholm",
         datetime.datetime.strptime("2019-06-01 00:00:00", "%Y-%m-%d %H:%M:%S"),
+        # datetime.datetime.strptime("2019-06-30 00:00:00", "%Y-%m-%d %H:%M:%S"),
         datetime.datetime.strptime("2019-09-30 23:59:59", "%Y-%m-%d %H:%M:%S"),
         # datetime.datetime.strptime("2019-04-01 00:00:00", "%Y-%m-%d %H:%M:%S"),
         # datetime.datetime.strptime("2020-03-31 23:59:59", "%Y-%m-%d %H:%M:%S"),
@@ -37,7 +37,7 @@ def main():  # main(input_filepath, output_filepath):
     # Very long voyages were split into smaller tracks from 4 to 24 hours each."
     min_track_length = 240 * 60  # 240 minutes (4 hours)
     max_track_Length = 24 * 60 * 60  # 24 hours
-    resample_frequency = 10 * 60  # 10 mintues
+    resample_frequency = 0  # 10 * 60  # 10 mintues # Stilla og test-a 0
     split_track_length = 120 * 60  # 120 minutes (2 hours)
 
     result_file_name = process_data.process_into_trajectories(
@@ -45,7 +45,6 @@ def main():  # main(input_filepath, output_filepath):
         max_track_Length,
         resample_frequency,
         split_track_length,
-        inject_cargo_proportion=inject_cargo_proportion,
     )
     print(result_file_name)
     # result_file_name = "RegionAll_01042019_31032020_Fish_600_2678400_60"
