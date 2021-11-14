@@ -2,6 +2,7 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import matplotlib.style as style
+import numpy as np
 import pandas as pd
 import seaborn as sns
 
@@ -548,6 +549,8 @@ class SummaryModels:
         bins="auto",
         title=None,
         print_summary_stats=False,
+        stat=None,
+        weights=None,
     ):
         """Creates a histogram or stacked histogram plot
 
@@ -592,17 +595,36 @@ class SummaryModels:
         title : str (Defaults to None)
             The figure title
 
-        print_summary_stats : bool
+        print_summary_stats : bool (Defaults to False)
             When True, summary statistics will also be printed
+
+        stat : str (Defaults to None)
+            Aggregate statistic to compute in each bin
+
+        weights : list (Defaults to None)
+            If provided, weight the contribution of the corresponding data points towards the count in each bin by these factors
         """
         sns.set_theme(style="whitegrid")
         sns.set_context("paper", rc={"lines.linewidth": 3.0})
         style.use("seaborn-colorblind")
 
         if type == "Histogram":
-            ax = sns.histplot(x=x, bins=bins, hue=hue, hue_order=hue_order, data=data)
+            if stat is None:
+                stat = "count"
+            ax = sns.histplot(
+                x=x, bins=bins, hue=hue, hue_order=hue_order, data=data, stat=stat
+            )
 
         elif type == "Stacked":
+            if stat is None:
+                stat = "proportion"
+            elif stat == "normalized_largest":
+                # Get the number of bins and the max count (to normalize by the largest count)
+                hist_info = np.histogram(data[x], bins=bins)
+                weights = [1 / max(hist_info[0])] * data.shape[0]
+                bins = len(hist_info[0])
+                stat = "count"
+
             ax = sns.histplot(
                 x=x,
                 bins=bins,
@@ -610,6 +632,8 @@ class SummaryModels:
                 multiple="stack",
                 hue_order=hue_order,
                 data=data,
+                stat=stat,
+                weights=weights,
             )
         else:
             print("Currently only implmented for 'Histogram' and 'Stacked'")
