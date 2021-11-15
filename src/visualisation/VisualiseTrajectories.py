@@ -615,7 +615,6 @@ class VisualiseTrajectories:
         plot_end=True,
         progress_bar=False,
         return_ax=False,
-        plot_speed=False,
     ):
         """Reads the created static map and plots a single vessel trajectory
 
@@ -645,8 +644,6 @@ class VisualiseTrajectories:
         return_ax : bool (Defaults to False)
             Return the axis plotted on when True
 
-        plot_speed : bool (Defaults to False)
-            When True, speed is plotted in the top left corner
         """
         logger = logging.getLogger(__name__)  # For logging information
         logger.info(
@@ -662,7 +659,6 @@ class VisualiseTrajectories:
             plot_start,
             plot_end,
             progress_bar=progress_bar,
-            plot_speed=plot_speed,
             fig=fig,
         )
         if return_ax:
