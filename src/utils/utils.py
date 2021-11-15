@@ -73,9 +73,8 @@ def add_plot_extras(
         plt.show()
 
 
-# Read the info file to know how to read the data file
 def read_data_info_file(data_info_file):
-    """Get the requested track - Read the data file from the current index
+    """Read the data info pickle file
 
     Parameters
     ----------
@@ -89,6 +88,46 @@ def read_data_info_file(data_info_file):
     """
     with open(data_info_file, "rb") as f:
         data_info = pickle.load(f)
+    return data_info
+
+
+def construct_read_data_info_file(file_name, processed_data_dir):
+    """Constructs data info file name and reads the pickle file
+
+    Parameters
+    ----------
+    file_name : str
+        file_name and processed_data_dir are used to construct the file path
+
+    processed_data_dir : pathlib.WindowsPath
+        file_name and processed_data_dir are used to construct the file path
+
+    Returns
+    ----------
+    dict
+        Dictionary of data file information
+    """
+    if "FishCargTank" in file_name:
+        # Need to read the two separate data files
+        file_name_fish = file_name.replace("FishCargTank", "Fish")
+        data_info_file_fish = processed_data_dir / (
+            "datasetInfo_" + file_name_fish + ".pkl"
+        )
+        data_info_fish = read_data_info_file(data_info_file_fish)
+
+        file_name_carg_tank = file_name.replace("FishCargTank", "CargTank")
+        data_info_file_carg_tank = processed_data_dir / (
+            "datasetInfo_" + file_name_carg_tank + ".pkl"
+        )
+        data_info_carg_tank = read_data_info_file(data_info_file_carg_tank)
+        data_info = {"Fishing": data_info_fish, "CargoTanker": data_info_carg_tank}
+
+    else:
+        # Just a single file to read (either fishing only or cargo/tanker)
+        data_info_file = processed_data_dir / ("datasetInfo_" + file_name + ".pkl")
+        data_info = read_data_info_file(data_info_file)
+        setup = "CargoTanker" if "CargTank" in file_name else "Fishing"
+        data_info = {setup: data_info}
     return data_info
 
 
