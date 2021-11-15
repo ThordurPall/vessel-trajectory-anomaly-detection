@@ -208,7 +208,7 @@ def plotDataset(dataset, ax, edges, n=5000):
     ylist = []
     for i in progressbar.progressbar(range(0, n)):
         index, mmsi, time_stamps, ship_type, track_length, inputs, track = dataset[i]
-        lon, lat = PlotDatasetTrack(track, edges)
+        lon, lat, speed, course = PlotDatasetTrack(track, edges)
         xlist.extend(lon)
         ylist.extend(lat)
         xlist.append(None)
@@ -272,8 +272,8 @@ def PlotDatasetTrack(encodedTrack, edges):
                 ]
             )
         ]
-
-    return lon, lat
+    # return lon, lat
+    return lon, lat, speed, course
 
 
 def Plot4HotEncodedTrack(encodedTrack, edges, ax=None):

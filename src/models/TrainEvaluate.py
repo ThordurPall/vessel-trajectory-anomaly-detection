@@ -1100,13 +1100,20 @@ class TrainEvaluate:
         )
 
         # Get the reconstructed continuous lat and lon values
-        reconstruction_lon, reconstruction_lat = plotting.PlotDatasetTrack(
+        (
+            reconstruction_lon,
+            reconstruction_lat,
+            reconstruction_speed,
+            reconstruction_course,
+        ) = plotting.PlotDatasetTrack(
             reconstruction_discrete, data_set.data_info["binedges"]
         )
         reconstruction = pd.DataFrame(
             {
                 "Longitude": reconstruction_lon,
                 "Latitude": reconstruction_lat,
+                "Speed": reconstruction_lat,
+                "Course": reconstruction_lat,
             }
         )
 

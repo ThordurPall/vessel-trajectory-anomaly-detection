@@ -226,7 +226,7 @@ def get_tracks_from_dataset(
     else:
         # Discrete AIS trajectory representation
         mmsis, indicies, data_set_indicies, longitudes, latitudes = [], [], [], [], []
-        ship_types, track_lengths, times = [], [], []
+        speeds, courses, ship_types, track_lengths, times = [], [], [], [], []
         for i in range(0, len(data_set)):
             (
                 data_set_index,
@@ -240,9 +240,13 @@ def get_tracks_from_dataset(
             ) = data_set[i]
 
             # The targets are the actual tracks (not centered)
-            lon, lat = plotting.PlotDatasetTrack(target, data_set.data_info["binedges"])
+            lon, lat, speed, course = plotting.PlotDatasetTrack(
+                target, data_set.data_info["binedges"]
+            )
             longitudes.extend(lon)
             latitudes.extend(lat)
+            speeds.extend(speed)
+            courses.extend(course)
             n = len(lat)
             indicies += [data_set.indicies[i]] * n
             data_set_indicies += [i] * n
@@ -258,6 +262,8 @@ def get_tracks_from_dataset(
                 "MMSI": mmsis,
                 "Longitude": longitudes,
                 "Latitude": latitudes,
+                "Speed": speeds,
+                "Course": courses,
                 "Ship type": ship_types,
                 "Track length": track_lengths,
                 "Time stamp": times,
@@ -269,3 +275,34 @@ def get_tracks_from_dataset(
     if col_names is not None:
         df.columns = col_names
     return df
+
+
+def concat_actual_recon(df_actual, df_recon, col):
+    """Concatenate actual and reconstructed columns into a data frame
+
+    Parameters
+    ----------
+    df_actual : pandas.DataFrame
+        Data frame with actual/real/targets
+
+
+    recon : pandas.DataFrame
+        Data frame with reconstructions
+
+    col : str
+        The column to focus on and concatenate on
+
+    Returns
+    ----------
+    pandas.DataFrame
+        Data frame with concatenated actual and reconstructed values
+    """
+    df_col_actual = df_actual[col].copy().to_frame()
+    df_col_actual["Type"] = "Actual"
+
+    df_col_recon = df_recon[col].copy().to_frame()
+    df_col_recon["Type"] = "Reconstructed"
+    df_col_recon
+    df_col = pd.concat([df_col_actual, df_col_recon])
+    df_col.reset_index(inplace=True)
+    return df_col

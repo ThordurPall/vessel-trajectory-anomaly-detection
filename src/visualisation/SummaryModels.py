@@ -62,6 +62,9 @@ class SummaryModels:
 
     hist_stacked_plot(data, type, x, y, file_name, xlabel, ylabel, hue, hue_order, xlim, ylim, bins, print_summary_stats, title)
         Creates a histogram or stacked histogram plot
+
+    intermediate_epoch : int (Defaults to None)
+            When not None, the intermediate model saved at epoch intermediate_epoch will be loaded
     """
 
     def __init__(
@@ -77,6 +80,7 @@ class SummaryModels:
         scheduler=False,
         kl_annealing=False,
         model_prefix="",
+        intermediate_epoch=None,
     ):
         """
         Parameters
@@ -113,6 +117,9 @@ class SummaryModels:
 
         model_prefix : str (Defaults to empty string '')
             Model name prefix (e.g. 'Fishing_vessels_only_')
+
+        intermediate_epoch : int (Defaults to None)
+            When not None, the intermediate model saved at epoch intermediate_epoch will be loaded
         """
 
         super().__init__()
@@ -121,6 +128,7 @@ class SummaryModels:
         self.plot_figures = plot_figures
         self.fig_size = fig_size
         self.model_prefix = model_prefix
+        self.intermediate_epoch = intermediate_epoch
 
         # Setup the correct foldure structure
         project_dir = Path(__file__).resolve().parents[2]
@@ -402,6 +410,7 @@ class SummaryModels:
             is_trained=True,
             fishing_file=fishing_file,
             fishing_new_file=fishing_new_file,
+            intermediate_epoch=self.intermediate_epoch,
         )
 
         # Check which data set to actually use when running the evaluation loop
