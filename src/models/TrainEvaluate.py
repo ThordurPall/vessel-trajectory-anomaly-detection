@@ -1112,8 +1112,8 @@ class TrainEvaluate:
             {
                 "Longitude": reconstruction_lon,
                 "Latitude": reconstruction_lat,
-                "Speed": reconstruction_lat,
-                "Course": reconstruction_lat,
+                "Speed": reconstruction_speed,
+                "Course": reconstruction_course,
             }
         )
 

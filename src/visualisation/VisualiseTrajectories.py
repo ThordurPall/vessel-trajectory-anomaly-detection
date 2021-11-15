@@ -69,10 +69,10 @@ class VisualiseTrajectories:
     visualise_static_map(img)
         Visualises a static Google Maps map
 
-    plot_single_track(df_lon_lat, ax, use_cmap, color, plot_start, plot_end, progress_bar)
+    plot_single_track(df_lon_lat, ax, use_cmap, color, plot_start, plot_end, progress_bar, fig)
         Plots a single vessel trajectory on an axis ax
 
-    plot_multiple_tracks(ax, indicies, data_path, df_lon_lat, use_cmap, color, plot_start, plot_end, s, progress_bar)
+    plot_multiple_tracks(ax, indicies, data_path, df_lon_lat, use_cmap, color, plot_start, plot_end, s, progress_bar, fig)
         Plots multiple vessel trajectory on an axis ax
 
     read_visualise_static_map()
@@ -237,6 +237,11 @@ class VisualiseTrajectories:
         s=100,
         progress_bar=False,
         return_ax=False,
+        df_speed=None,
+        df_course=None,
+        fig=None,
+        rect=None,
+        rect2=None,
     ):
         """Plots a single vessel trajectory on an axis ax
 
@@ -272,6 +277,22 @@ class VisualiseTrajectories:
 
         return_ax : bool (Defaults to False)
             Return the axis plotted on when True
+
+        df_speed : pandas.DataFrame (Defaults to None)
+            Data frame of actual and reconstructed speed. When not None,
+            the speed is plotted in the top left corner
+
+        df_course : pandas.DataFrame (Defaults to None)
+            Data frame of actual and reconstructed course
+
+        fig : Figure (Defaults to None)
+            The figure instance to use
+
+        rect : list (Defaults to None)
+            The dimensions [left, bottom, width, height] of the new Axes. All quantities are in fractions of figure width and height
+
+        rect2 : list (Defaults to None)
+            The dimensions [left, bottom, width, height] of the new Axes. All quantities are in fractions of figure width and height
         """
         logger = logging.getLogger(__name__)  # For logging information
 
@@ -353,6 +374,38 @@ class VisualiseTrajectories:
                 s=s,
             )
 
+        if df_speed is not None:
+            # Plot speed in the top left corner
+            new_ax = fig.add_axes(rect=rect)
+            sns.lineplot(
+                x="index",
+                y="Speed",
+                color=color,
+                ax=new_ax,
+                hue="Type",
+                hue_order=["Actual", "Reconstructed"],
+                data=df_speed,
+            )
+            new_ax.set(
+                xlabel="Update number", ylabel="Speed (knots)"
+            )  # , title="title")
+
+        if df_course is not None:
+            # Plot speed in the top left corner
+            new_ax2 = fig.add_axes(rect=rect2)
+            sns.lineplot(
+                x="index",
+                y="Course",
+                color=color,
+                ax=new_ax2,
+                hue="Type",
+                hue_order=["Actual", "Reconstructed"],
+                data=df_course,
+            )
+            new_ax2.set(
+                xlabel="Update number", ylabel="Course (degrees)"
+            )  # , title="title")
+
         # Check whether to save or plot the figure
         if self.save_figures:
             plt.savefig(
@@ -377,6 +430,7 @@ class VisualiseTrajectories:
         plot_end=True,
         s=100,
         progress_bar=False,
+        fig=None,
     ):
         """Plots multiple vessel trajectory on an axis ax
 
@@ -417,6 +471,8 @@ class VisualiseTrajectories:
         progress_bar : bool (Defaults to False)
             When True, a progressbar.progressbar will be used when plotting points
 
+        fig : Figure (Defaults to None)
+            The figure instance to use
         """
         # Keep track of trajectory information and turn off save/plot for now
         trajectories = []
@@ -451,6 +507,7 @@ class VisualiseTrajectories:
                     plot_end=plot_end,
                     s=s,
                     progress_bar=progress_bar,
+                    fig=fig,
                 )
 
             # Plot the last trajectory and save the results
@@ -496,6 +553,7 @@ class VisualiseTrajectories:
                     plot_end=plot_end,
                     s=s,
                     progress_bar=progress_bar,
+                    fig=fig,
                 )
 
             # Plot the last trajectory and save the results
@@ -520,6 +578,7 @@ class VisualiseTrajectories:
                 plot_end=plot_end,
                 s=s,
                 progress_bar=progress_bar,
+                fig=fig,
             )
             return pd.DataFrame(
                 trajectories,
@@ -556,6 +615,7 @@ class VisualiseTrajectories:
         plot_end=True,
         progress_bar=False,
         return_ax=False,
+        plot_speed=False,
     ):
         """Reads the created static map and plots a single vessel trajectory
 
@@ -584,12 +644,15 @@ class VisualiseTrajectories:
 
         return_ax : bool (Defaults to False)
             Return the axis plotted on when True
+
+        plot_speed : bool (Defaults to False)
+            When True, speed is plotted in the top left corner
         """
         logger = logging.getLogger(__name__)  # For logging information
         logger.info(
             "Calling self.read_visualise_static_map to get and visualises the map"
         )
-        _, _, ax = self.read_visualise_static_map()
+        fig, _, ax = self.read_visualise_static_map()
         logger.info("Calling self.plot_single_track to plot a single track on the map")
         self.plot_single_track(
             df_lon_lat,
@@ -599,6 +662,8 @@ class VisualiseTrajectories:
             plot_start,
             plot_end,
             progress_bar=progress_bar,
+            plot_speed=plot_speed,
+            fig=fig,
         )
         if return_ax:
             return ax
