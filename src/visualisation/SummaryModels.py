@@ -80,6 +80,7 @@ class SummaryModels:
         scheduler=False,
         kl_annealing=False,
         model_prefix="",
+        inject_cargo_proportion=0.0,
         intermediate_epoch=None,
     ):
         """
@@ -118,6 +119,9 @@ class SummaryModels:
         model_prefix : str (Defaults to empty string '')
             Model name prefix (e.g. 'Fishing_vessels_only_')
 
+        inject_cargo_proportion : float (Defaults to 0.0)
+            Inject additional cargo/tanker vessel trajectories in inject_cargo_proportion proportion to the training trajectories
+
         intermediate_epoch : int (Defaults to None)
             When not None, the intermediate model saved at epoch intermediate_epoch will be loaded
         """
@@ -128,6 +132,7 @@ class SummaryModels:
         self.plot_figures = plot_figures
         self.fig_size = fig_size
         self.model_prefix = model_prefix
+        self.inject_cargo_proportion = inject_cargo_proportion
         self.intermediate_epoch = intermediate_epoch
 
         # Setup the correct foldure structure
@@ -145,11 +150,17 @@ class SummaryModels:
         BatchNorm = "_batchNormTrue" if batch_norm else "_batchNormFalse"
         Scheduler = "_SchedulerTrue" if scheduler else ""
         KLAnneal = "_KLTrue" if kl_annealing else ""
+        cargo_injected = (
+            "_Injected" + str(inject_cargo_proportion).replace(".", "")
+            if inject_cargo_proportion != 0.0
+            else ""
+        )
         self.model_name = (
             model_prefix
             + model
             + "_"
             + file_name
+            + cargo_injected
             + "_latent"
             + latent_dim
             + "_recurrent"
@@ -410,6 +421,7 @@ class SummaryModels:
             is_trained=True,
             fishing_file=fishing_file,
             fishing_new_file=fishing_new_file,
+            inject_cargo_proportion=self.inject_cargo_proportion,
             intermediate_epoch=self.intermediate_epoch,
         )
 
