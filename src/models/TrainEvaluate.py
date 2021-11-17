@@ -202,9 +202,13 @@ class TrainEvaluate:
             # Combine the two data sets and update the mean values to the overall training mean value
             training_set = ConcatDataset([training_set_fish, training_set_carg_tank])
             self.train_mean = (
-                len(training_set_fish) * training_set_fish.mean
-                + len(training_set_carg_tank) * training_set_carg_tank.mean
-            ) / len(training_set)
+                training_set_fish.total_training_updates * training_set_fish.mean
+                + training_set_carg_tank.total_training_updates
+                * training_set_carg_tank.mean
+            ) / (
+                training_set_fish.total_training_updates
+                + training_set_carg_tank.total_training_updates
+            )
             training_set_fish.mean = self.train_mean
             training_set_carg_tank.mean = self.train_mean
             self.input_shape = training_set_carg_tank.data_dim
@@ -222,9 +226,13 @@ class TrainEvaluate:
                 training_set_carg_tank, indices
             )
             self.train_mean = (
-                len(training_set) * training_set.mean
-                + len(training_set_carg_tank) * training_set_carg_tank.dataset.mean
-            ) / (len(training_set) + len(training_set_carg_tank))
+                training_set.total_training_updates * training_set.mean
+                + training_set_carg_tank.total_training_updates
+                * training_set_carg_tank.dataset.mean
+            ) / (
+                training_set.total_training_updates
+                + training_set_carg_tank.total_training_updates
+            )
             training_set.train_mean = self.train_mean
             training_set_carg_tank.train_mean = self.train_mean
             training_set_carg_tank = torch.utils.data.Subset(

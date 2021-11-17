@@ -239,6 +239,7 @@ class AISDataset(torch.utils.data.Dataset):
                 inputs = np.array(df[["lat", "lon", "speed", "course"]].values.tolist())
             sum_all += np.sum(inputs, axis=0)  # Sum over all time points
             total_updates += track["track_length"]
+        self.total_training_updates = total_updates
 
         # Mean of all the times a certain bin was activated. Used as a normalization factor (Centering in getimtem)
         return torch.tensor(sum_all / total_updates, dtype=torch.float)
@@ -483,6 +484,7 @@ class AISDiscreteRepresentation(torch.utils.data.Dataset):
             )  # seq_len X data_dim
             sum_all += np.sum(encodedTrack, axis=0)  # Sum over all time points
             total_updates += track["track_length"]
+        self.total_training_updates = total_updates
 
         # Mean of all the times a certain bin was activated. Used as a normalization factor (Centering in getimtem)
         return torch.tensor(sum_all / total_updates, dtype=torch.float)
