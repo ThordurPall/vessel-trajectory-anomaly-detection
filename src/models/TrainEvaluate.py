@@ -221,17 +221,24 @@ class TrainEvaluate:
             # Inject additional cargo/tanker trajectories into the training set
             file_name_carg_tank = file_name.replace("Fish", "CargTank")
             training_set_carg_tank = AISDiscreteRepresentation(file_name_carg_tank)
-            indices = range(0, int(len(training_set) * inject_cargo_proportion))
+            n = int(len(training_set) * inject_cargo_proportion)
+            indices = range(0, n)
             training_set_carg_tank = torch.utils.data.Subset(
                 training_set_carg_tank, indices
             )
+            training_set_carg_tank.dataset.indicies = (
+                training_set_carg_tank.dataset.indicies[:n]
+            )
+            training_set_carg_tank.dataset.mean = (
+                training_set_carg_tank.dataset.compute_mean()
+            )
             self.train_mean = (
                 training_set.total_training_updates * training_set.mean
-                + training_set_carg_tank.total_training_updates
+                + training_set_carg_tank.dataset.total_training_updates
                 * training_set_carg_tank.dataset.mean
             ) / (
                 training_set.total_training_updates
-                + training_set_carg_tank.total_training_updates
+                + training_set_carg_tank.dataset.total_training_updates
             )
             training_set.train_mean = self.train_mean
             training_set_carg_tank.train_mean = self.train_mean
