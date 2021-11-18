@@ -645,6 +645,19 @@ class SummaryModels:
                 weights = [1 / max(hist_info[0])] * data.shape[0]
                 bins = len(hist_info[0])
                 stat = "count"
+            elif stat == "normalized_each_bin":
+                # Get the weights to use to normalize each bin
+                hist_info = np.histogram(data[x], bins=bins)
+                bins = hist_info[1]
+                bin_weights = [
+                    100 / weight if weight != 0 else weight for weight in hist_info[0]
+                ]
+                weights = []
+                for index, row in data.iterrows():
+                    hist_info_i = np.histogram(row[x], bins=bins)
+                    weights.append(bin_weights[np.where(hist_info_i[0] == 1)[0][0]])
+                stat = "count"
+                bins = len(hist_info[0])
 
             ax = sns.histplot(
                 x=x,
