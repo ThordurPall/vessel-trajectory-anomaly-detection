@@ -131,7 +131,8 @@ class VisualiseTrajectories:
 
         # Use seaborn style defaults and set the default figure size
         sns.set(rc={"figure.figsize": self.fig_size})
-        sns.set_theme(style="whitegrid")
+        # sns.set_theme(style="whitegrid")
+        sns.set_theme(style="ticks")
         sns.set_context(
             "paper", rc={"lines.linewidth": 3.0}
         )  # One of paper, notebook, talk, and poster
@@ -526,6 +527,17 @@ class VisualiseTrajectories:
                 data_path,
                 indicies[-1],
                 keep_cols=["Longitude", "Latitude"],
+            )
+            self.plot_single_track(
+                df_lon_lat,
+                ax,
+                use_cmap=use_cmap,
+                color=color,
+                plot_start=plot_start,
+                plot_end=plot_end,
+                s=s,
+                progress_bar=progress_bar,
+                fig=fig,
             )
             return pd.DataFrame(
                 trajectories,
