@@ -122,9 +122,11 @@ class VisualiseTrajectories:
         self.continuous_representation = continuous_representation
 
         # Setup the correct foldure structure
-        project_dir = Path(__file__).resolve().parents[2]
-        self.processed_data_dir = project_dir / "data" / "processed"
-        self.trajectories_fig_dir = project_dir / "figures" / "regions" / self.region
+        self.project_dir = Path(__file__).resolve().parents[2]
+        self.processed_data_dir = self.project_dir / "data" / "processed"
+        self.trajectories_fig_dir = (
+            self.project_dir / "figures" / "regions" / self.region
+        )
 
         # Make sure that the trajectory figures path exists
         self.trajectories_fig_dir.mkdir(parents=True, exist_ok=True)
