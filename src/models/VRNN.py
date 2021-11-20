@@ -1,7 +1,7 @@
 # Please note that some code in this class builds upon work done by Kristoffer Vinther Olesen (@DTU)
 import torch
 from torch import nn
-from torch.distributions import Bernoulli
+from torch.distributions import Bernoulli, Normal, MultivariateNormal
 
 from src.models.Distributions import ReparameterizedDiagonalGaussian
 
@@ -55,6 +55,9 @@ class VRNN(nn.Module):
     rnn : torch.nn.modules.container.Sequential
         LSTM RNN network
 
+    generative_dist : str (Defaults to 'Bernoulli')
+        The observation model to use
+
     Methods
     -------
     prior(h, sigma_min, raw_sigma_bias)
@@ -78,6 +81,7 @@ class VRNN(nn.Module):
         batch_norm,
         generative_bias,
         device,
+        generative_dist="Bernoulli",
     ):
 
         super(VRNN, self).__init__()
@@ -87,6 +91,7 @@ class VRNN(nn.Module):
         self.batch_norm = batch_norm
         self.generative_bias = generative_bias.to(device)
         self.device = device
+        self.generative_dist = generative_dist
 
         # Start by defining the two feature extractors that use a fully connected
         # network with one hidden layer with ReLU activation:
@@ -169,10 +174,33 @@ class VRNN(nn.Module):
         ]
         if self.batch_norm:
             layers_decoder.append(nn.BatchNorm1d(self.latent_shape))
-        layers_decoder = layers_decoder + [
-            nn.ReLU(),
-            nn.Linear(self.latent_shape, self.input_shape),  # <- Assuming Bernoulli
-        ]
+
+        if self.generative_dist == "Bernoulli":
+            # Return the input_shape many logits
+            layers_decoder = layers_decoder + [
+                nn.ReLU(),
+                nn.Linear(self.latent_shape, self.input_shape),
+            ]
+        elif self.generative_dist == "Isotropic_Gaussian":
+            # Return the means and standard deviations (2*input_shape many parameters)
+            layers_decoder = layers_decoder + [
+                nn.ReLU(),
+                nn.Linear(self.latent_shape, 2 * self.input_shape),
+            ]
+        elif self.generative_dist == "Gaussian":
+            # Return the means and variance-covariance matrix (input_shape + (input_shape^2 + input_shape)/2 many parameters)
+            layers_decoder = layers_decoder + [
+                nn.ReLU(),
+                nn.Linear(
+                    self.latent_shape,
+                    self.input_shape
+                    + int((self.input_shape * self.input_shape + self.input_shape) / 2),
+                ),
+            ]
+        else:
+            print(
+                "Currently only implmented for 'Bernoulli', 'Isotropic_Gaussian', 'Gaussian'"
+            )
         self.decoder = torch.nn.Sequential(*layers_decoder)
 
         # Define an RNN that updates its hidden state with a recurrence equation that uses feature extracted x_t and z_t
@@ -258,7 +286,7 @@ class VRNN(nn.Module):
         # Return a distribution q(z_t|x_t) = N(z_t|mu_{z,t}, diag(sigma^2_{z,t}))
         return ReparameterizedDiagonalGaussian(mu, sigma)
 
-    def generative(self, z_features, h):
+    def generative(self, z_features, h, sigma_min=0.0, raw_sigma_bias=0.5):
         """Returns the generating distribution p(x_t|z_t)
 
         Parameters
@@ -278,17 +306,75 @@ class VRNN(nn.Module):
         # Compute the parameters of the generating distribution - Decoder uses the RNN (LSTM) hidden state vector
         # and the feature extracted latent random variables
         decoder_input = torch.cat([z_features, h], dim=1)
-        x_log_odds = self.decoder(
-            decoder_input
-        )  # <- The log odds is non-linear in z_features and h
-        x_log_odds = x_log_odds + self.generative_bias
+        x_decoder = self.decoder(decoder_input)
 
-        # Change if Gaussian generating:
+        if self.generative_dist == "Bernoulli":
+            # The log odds is non-linear in z_features and h
+            x_log_odds = x_decoder + self.generative_bias
+
+            # Create a Bernoulli distribution parameterized by the log-odds of sampling one
+            dist = Bernoulli(logits=x_log_odds)
+        elif self.generative_dist == "Isotropic_Gaussian":
+            # Return the means and standard deviations from the decoder
+            mu, sigma = x_decoder.chunk(2, dim=-1)
+
+            # Make sure that sigma is non-negative
+            sigma_min = torch.full_like(sigma, sigma_min)
+            sigma = torch.maximum(
+                torch.nn.functional.softplus(sigma + raw_sigma_bias), sigma_min
+            )
+
+            dist = MultivariateNormal(
+                loc=mu,
+                covariance_matrix=torch.diag_embed(
+                    torch.square(sigma), offset=0, dim1=-2, dim2=-1
+                ),
+            )
+
+        elif self.generative_dist == "Gaussian":
+            # Return the means and variance-covariance matrix from the decoder
+            mu = x_decoder[:, 0 : self.input_shape]
+            sigmas = x_decoder[:, self.input_shape :]
+
+            # construct the variance-covariance matrix
+            Sigma = torch.zeros(
+                x_decoder.shape[0],
+                self.input_shape,
+                self.input_shape,
+                device=self.device,
+            )
+            index = 0
+            for i in range(self.input_shape):
+                for j in range(self.input_shape):
+                    if i == j:
+                        # Make sure that the variance (on the matrix diagonal) is non-negative
+                        sigma_min_tmp = torch.full_like(sigmas[:, index], sigma_min)
+                        Sigma[:, i, j] = torch.maximum(
+                            torch.nn.functional.softplus(
+                                sigmas[:, index] + raw_sigma_bias
+                            ),
+                            sigma_min_tmp,
+                        )
+                        Sigma[:, i, j] += 1  # Add one on the diagonal
+                        index += 1
+                    else:
+                        if sum(Sigma[:, i, j]).item() == 0:
+                            # Set the covariance values
+                            Sigma[:, i, j] = sigmas[:, index]
+                            Sigma[:, j, i] = sigmas[:, index]
+                            index += 1
+            # Define the multivariate Gaussian
+            # a = torch.mm(a, a.t()) # make symmetric positive-definite
+            # https://pytorch.org/docs/stable/generated/torch.cholesky.html
+            dist = MultivariateNormal(loc=mu, covariance_matrix=Sigma)
+
+        else:
+            print(
+                "Currently only implmented for 'Bernoulli', 'Isotropic_Gaussian', 'Gaussian'"
+            )
 
         # Return a distribution p(x_t|z_t)
-        return Bernoulli(
-            logits=x_log_odds
-        )  # Create a Bernoulli distribution parameterized by the log-odds of sampling one
+        return dist
 
     def forward(
         self, inputs, targets, logits=None, hs=None, zs=None, z_mus=None, z_sigmas=None
@@ -397,13 +483,16 @@ class VRNN(nn.Module):
                 axis=0
             )  # The output_t dimensions are now batch_size X recurrent_shape
 
-            # Change if Gaussian generating:
             # Use the created distributions to evaluate the log probabilities that will be used in the loss function
-            # Get the log probability of observing the tarrget given the Bernoulli distribution defined above
-            # Sum over input dimension to get the joint log probablity for the [data dimension] many Bernoulli distributions
-            log_px.append(
-                px_t.log_prob(y_t).sum(dim=1)
-            )  # Aim to maximize this log probability
+            if self.generative_dist == "Bernoulli":
+                # Get the log probability of observing the tarrget given the Bernoulli distribution defined above
+                # Sum over input dimension to get the joint log probablity for the [data dimension] many Bernoulli distributions
+                log_px.append(
+                    px_t.log_prob(y_t).sum(dim=1)
+                )  # Aim to maximize this log probability
+            else:
+                # Use multivariate distribution to get the log likelihood directly
+                log_px.append(px_t.log_prob(y_t))
 
             # Log probability of observing the sampled latent random variables in the prior and approximate posterior
             # Want the probability to be similar under those two distributions. That is, the posterior should look

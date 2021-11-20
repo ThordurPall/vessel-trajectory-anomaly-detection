@@ -41,7 +41,8 @@ class AISDataset(torch.utils.data.Dataset):
         Dimension of the four hot encoded vector
 
     discrete : bool
-        When True,
+        When True, discrete four hot encoded inputs will be used.
+        When False the actual real valued inputs will be used
 
     Methods
     -------
@@ -140,11 +141,14 @@ class AISDataset(torch.utils.data.Dataset):
         # or otherwise use the once computed from the training set
         if train_mean == None:
             logger.info(
-                "AISDiscreteRepresentation: Computing training mean values using self.compute_mean()"
+                "AISDataset: Computing training mean values using self.compute_mean()"
             )
             self.mean = self.compute_mean()
 
             if not self.discrete:
+                logger.info(
+                    "AISDataset: Computing training standard deviation values using self.compute_std()"
+                )
                 self.std = self.compute_std()
         else:
             self.mean = train_mean
@@ -181,12 +185,12 @@ class AISDataset(torch.utils.data.Dataset):
             track = pickle.load(file)
         df = pd.DataFrame(track)
 
+        # Return the shipType as a label that could be useful later (e.g. for plotting)
+        ship_type_label = dataset_utils.convertShipTypeToLabel(track["shiptype"])
+
         if self.discrete:
             # Four hot encode the current trajectory
             encodedTrack = dataset_utils.FourHotEncode(df, self.data_info["binedges"])
-
-            # Return the shipType as a label that could be useful later (e.g. for plotting)
-            ship_type_label = dataset_utils.convertShipTypeToLabel(track["shiptype"])
 
             # The targets are just to reconstruct the input sequence
             targets = torch.tensor(

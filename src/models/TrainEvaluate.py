@@ -11,7 +11,7 @@ from torch.utils.data import ConcatDataset, DataLoader
 import src.models.VRNN as VRNN
 import src.utils.dataset_utils as dataset_utils
 import src.utils.plotting as plotting
-from src.data.Datasets import AISDiscreteRepresentation
+from src.data.Datasets import AISDataset
 
 
 class TrainEvaluate:
@@ -90,6 +90,9 @@ class TrainEvaluate:
     fishing_new_test_dataloader : torch.utils.data.DataLoader
         New fishing vessel only test set DataLoader
 
+    generative_dist : str (Defaults to 'Bernoulli')
+        The observation model to use
+
     Methods
     -------
     loss_function(log_px, log_pz, log_qz, lengths, beta)
@@ -120,6 +123,7 @@ class TrainEvaluate:
         fishing_new_file=None,
         inject_cargo_proportion=0.0,
         intermediate_epoch=None,
+        generative_dist="Bernoulli",
     ):
         """
         Parameters
@@ -161,10 +165,17 @@ class TrainEvaluate:
 
         intermediate_epoch : int (Defaults to None)
             When not None, the intermediate model saved at epoch intermediate_epoch will be loaded
+
+        generative_dist : str (Defaults to 'Bernoulli')
+            The observation model to use
         """
         logger = logging.getLogger(__name__)  # For logging information
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         logger.info("Using {} device".format(self.device))
+
+        # Check what type of input feature representation to use
+        self.generative_dist = generative_dist
+        self.discrete = True if self.generative_dist == "Bernoulli" else False
 
         # Setup the correct foldure structure
         project_dir = Path(__file__).resolve().parents[2]
@@ -182,12 +193,13 @@ class TrainEvaluate:
         # the date is reshuffled at every epoch to reduce model overfitting, and Python’s multiprocessing can be used
         # to speed up data retrieval. DataLoader is an iterable that abstracts this complexity with an easy API
 
-        # Initialize the custom data sets - Create instances of AISDiscreteRepresentation
-        logger.info("Initialize the custom data sets (AISDiscreteRepresentation)")
+        # Initialize the custom data sets - Create instances of AISDataset
+        logger.info("Initialize the custom data sets (AISDataset)")
 
         # Make sure that the same fishing training (when training on fishing vessels),
         # validation, and test sets are always used
         self.is_FishCargTank = False
+        self.train_std = None
         if "FishCargTank" in file_name:
             self.is_FishCargTank = True
 
@@ -196,8 +208,10 @@ class TrainEvaluate:
             file_name_carg_tank = file_name.replace("FishCargTank", "CargTank")
 
             # Load the fishing vessel only and cargo/tanker only training sets
-            training_set_fish = AISDiscreteRepresentation(file_name_fish)
-            training_set_carg_tank = AISDiscreteRepresentation(file_name_carg_tank)
+            training_set_fish = AISDataset(file_name_fish, discrete=self.discrete)
+            training_set_carg_tank = AISDataset(
+                file_name_carg_tank, discrete=self.discrete
+            )
 
             # Combine the two data sets and update the mean values to the overall training mean value
             training_set = ConcatDataset([training_set_fish, training_set_carg_tank])
@@ -209,23 +223,37 @@ class TrainEvaluate:
                 training_set_fish.total_training_updates
                 + training_set_carg_tank.total_training_updates
             )
+            if not self.discrete:
+                # Update the standard deviation as well
+                tmp1 = training_set_fish.get_all_input_points_df()
+                tmp2 = training_set_carg_tank.get_all_input_points_df()
+                tmp = pd.concat([tmp1, tmp2])
+                self.train_std = torch.tensor(tmp.std(), dtype=torch.float)
+                training_set.std = self.train_std
+                training_set_carg_tank.std = self.train_std
+
             training_set_fish.mean = self.train_mean
             training_set_carg_tank.mean = self.train_mean
             self.input_shape = training_set_carg_tank.data_dim
         else:
-            training_set = AISDiscreteRepresentation(file_name)
+            training_set = AISDataset(file_name, discrete=self.discrete)
             self.train_mean = training_set.mean
+            self.train_std = None if self.discrete else training_set.std
             self.input_shape = training_set.data_dim
 
         if inject_cargo_proportion != 0.0:
             # Inject additional cargo/tanker trajectories into the training set
             file_name_carg_tank = file_name.replace("Fish", "CargTank")
-            training_set_carg_tank = AISDiscreteRepresentation(file_name_carg_tank)
+            training_set_carg_tank = AISDataset(
+                file_name_carg_tank, discrete=self.discrete
+            )
             n = int(len(training_set) * inject_cargo_proportion)
             indices = range(0, n)
             training_set_carg_tank = torch.utils.data.Subset(
                 training_set_carg_tank, indices
             )
+
+            # Update the indicies and the mean (and std) value
             training_set_carg_tank.dataset.indicies = (
                 training_set_carg_tank.dataset.indicies[:n]
             )
@@ -240,8 +268,19 @@ class TrainEvaluate:
                 training_set.total_training_updates
                 + training_set_carg_tank.dataset.total_training_updates
             )
-            training_set.train_mean = self.train_mean
-            training_set_carg_tank.train_mean = self.train_mean
+
+            if not self.discrete:
+                # Update the standard deviation as well
+                tmp1 = training_set.get_all_input_points_df()
+                tmp2 = training_set_carg_tank.dataset.get_all_input_points_df()
+                tmp = pd.concat([tmp1, tmp2])
+                self.train_std = torch.tensor(tmp.std(), dtype=torch.float)
+                training_set.std = self.train_std
+                training_set_carg_tank.dataset.std = self.train_std
+
+            # Do the mean value updates and concat the two datasets
+            training_set.mean = self.train_mean
+            training_set_carg_tank.dataset.mean = self.train_mean
             training_set_carg_tank = torch.utils.data.Subset(
                 training_set_carg_tank, indices
             )
@@ -252,17 +291,33 @@ class TrainEvaluate:
         # Also make sure to always use the same fishing vessel for validation and test
         if self.is_FishCargTank:
             # Load the fishing vessel only and cargo/tanker only validation/test sets
-            validation_set_fish = AISDiscreteRepresentation(
-                file_name_fish, self.train_mean, validation=True
+            validation_set_fish = AISDataset(
+                file_name_fish,
+                self.train_mean,
+                train_std=self.train_std,
+                validation=True,
+                discrete=self.discrete,
             )
-            validation_set_carg_tank = AISDiscreteRepresentation(
-                file_name_carg_tank, self.train_mean, validation=True
+            validation_set_carg_tank = AISDataset(
+                file_name_carg_tank,
+                self.train_mean,
+                train_std=self.train_std,
+                validation=True,
+                discrete=self.discrete,
             )
-            test_set_fish = AISDiscreteRepresentation(
-                file_name_fish, self.train_mean, validation=False
+            test_set_fish = AISDataset(
+                file_name_fish,
+                self.train_mean,
+                train_std=self.train_std,
+                validation=False,
+                discrete=self.discrete,
             )
-            test_set_carg_tank = AISDiscreteRepresentation(
-                file_name_carg_tank, self.train_mean, validation=False
+            test_set_carg_tank = AISDataset(
+                file_name_carg_tank,
+                self.train_mean,
+                train_std=self.train_std,
+                validation=False,
+                discrete=self.discrete,
             )
 
             # Combine the two validation/test data sets
@@ -271,11 +326,19 @@ class TrainEvaluate:
             )
             test_set = ConcatDataset([test_set_fish, test_set_carg_tank])
         else:
-            validation_set = AISDiscreteRepresentation(
-                file_name, self.train_mean, validation=True
+            validation_set = AISDataset(
+                file_name,
+                self.train_mean,
+                train_std=self.train_std,
+                validation=True,
+                discrete=self.discrete,
             )
-            test_set = AISDiscreteRepresentation(
-                file_name, self.train_mean, validation=False
+            test_set = AISDataset(
+                file_name,
+                self.train_mean,
+                train_std=self.train_std,
+                validation=False,
+                discrete=self.discrete,
             )
         self.validation_n = len(validation_set)
         self.test_n = len(test_set)
@@ -314,12 +377,20 @@ class TrainEvaluate:
             logger.info(
                 "Initialize fishing vessel only valdiation and test sets that have the same dates and ROI"
             )
-            fishing_validation_set = AISDiscreteRepresentation(
-                fishing_file, self.train_mean, validation=True
+            fishing_validation_set = AISDataset(
+                fishing_file,
+                self.train_mean,
+                train_std=self.train_std,
+                validation=True,
+                discrete=self.discrete,
             )
             self.fishing_validation_n = len(fishing_validation_set)
-            fishing_test_set = AISDiscreteRepresentation(
-                fishing_file, self.train_mean, validation=False
+            fishing_test_set = AISDataset(
+                fishing_file,
+                self.train_mean,
+                train_std=self.train_std,
+                validation=False,
+                discrete=self.discrete,
             )
             self.fishing_test_n = len(fishing_test_set)
 
@@ -349,12 +420,20 @@ class TrainEvaluate:
             logger.info(
                 "Initialize fishing vessel only valdiation and test sets that have different dates or ROI"
             )
-            fishing_new_validation_set = AISDiscreteRepresentation(
-                fishing_new_file, self.train_mean, validation=True
+            fishing_new_validation_set = AISDataset(
+                fishing_new_file,
+                self.train_mean,
+                train_std=self.train_std,
+                validation=True,
+                discrete=self.discrete,
             )
             self.fishing_new_validation_n = len(fishing_new_validation_set)
-            fishing_new_test_set = AISDiscreteRepresentation(
-                fishing_new_file, self.train_mean, validation=False
+            fishing_new_test_set = AISDataset(
+                fishing_new_file,
+                self.train_mean,
+                train_std=self.train_std,
+                validation=False,
+                discrete=self.discrete,
             )
             self.fishing_new_test_n = len(fishing_new_test_set)
 
@@ -386,6 +465,7 @@ class TrainEvaluate:
             batch_norm=batch_norm,
             generative_bias=self.train_mean,
             device=self.device,
+            generative_dist=self.generative_dist,
         ).to(self.device)
 
         # String that describes the model setup used
@@ -395,6 +475,7 @@ class TrainEvaluate:
             if inject_cargo_proportion != 0.0
             else ""
         )
+        GenerativeDist = "_" + generative_dist if not self.discrete else ""
         self.model_name = (
             "VRNN"
             + "_"
@@ -405,6 +486,7 @@ class TrainEvaluate:
             + "_recurrent"
             + str(recurrent_dim)
             + batchNorm
+            + GenerativeDist
         )
         logger.info("Model name: " + self.model_name)
 
@@ -927,16 +1009,25 @@ class TrainEvaluate:
             else:
                 validation_set = self.validation_dataloader.dataset
                 datapoints = np.random.choice(self.validation_n, size=3, replace=False)
-            plotting.make_vae_plots(
-                (loss_tot, kl_tot, recon_tot, val_loss_tot, val_kl_tot, val_recon_tot),
-                self.model,
-                datapoints,
-                validation_set,
-                validation_set.data_info["binedges"],
-                self.device,
-                figure_path=self.model_intermediate_dir
-                / (self.model_name + "_Results_" + str(epoch) + ".pdf"),
-            )
+            if self.discrete:
+                # TODO: Update for continuous also
+                plotting.make_vae_plots(
+                    (
+                        loss_tot,
+                        kl_tot,
+                        recon_tot,
+                        val_loss_tot,
+                        val_kl_tot,
+                        val_recon_tot,
+                    ),
+                    self.model,
+                    datapoints,
+                    validation_set,
+                    validation_set.data_info["binedges"],
+                    self.device,
+                    figure_path=self.model_intermediate_dir
+                    / (self.model_name + "_Results_" + str(epoch) + ".pdf"),
+                )
             logger.info(
                 "Epoch {} of {} finished. Training loss = {}. Validation loss = {}".format(
                     epoch, num_epochs, train_results[0], val_results[0]
