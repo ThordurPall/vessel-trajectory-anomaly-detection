@@ -107,6 +107,7 @@ def show_binning():
         visualise_trajectories.project_dir
         / "figures"
         / "report"
+        / "Data_Data_Representation"
         / "Explain_Binning_Bornholm.pdf",
     )
 
