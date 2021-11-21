@@ -4,8 +4,12 @@ import logging
 from pathlib import Path
 
 import click
+import matplotlib.image as mpimg
+import matplotlib.pyplot as plt
+import matplotlib.style as style
 import pandas as pd
 import seaborn as sns
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 
 import src.utils.utils as utils
 from src.visualisation.VisualiseTrajectories import VisualiseTrajectories
@@ -28,7 +32,7 @@ def show_binning():
     zoom = 8
 
     # Use the VisualiseTrajectories class
-    fig_size = (10, 10)
+    fig_size = (12, 8)
     visualise_trajectories = VisualiseTrajectories(
         region, save_figures=True, plot_figures=True, fig_size=fig_size, zoom=zoom
     )
@@ -80,12 +84,20 @@ def show_binning():
         data_tmp = pd.DataFrame(
             {"Latitude": [min_lat, max_lat], "Longitude": [lon_edges[i], lon_edges[i]]}
         )
+        plt.plot(
+            data_tmp["Longitude"],
+            data_tmp["Latitude"],
+            color="black",
+            linewidth=linewidth,
+        )
+
         sns.lineplot(
             x="Longitude",
             y="Latitude",
             color="black",
             linewidth=linewidth,
             ax=ax,
+            sort=False,
             data=data_tmp,
         )
     utils.add_plot_extras(
