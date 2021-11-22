@@ -6,7 +6,6 @@ from pathlib import Path
 import click
 import numpy as np
 import pandas as pd
-
 from src.visualisation.VisualiseTrajectories import VisualiseTrajectories
 
 
