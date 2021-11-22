@@ -355,17 +355,34 @@ class VRNN(nn.Module):
                             ),
                             sigma_min_tmp,
                         )
-                        Sigma[:, i, j] += 1  # Add one on the diagonal
+                        # Sigma[:, i, j] = (Sigma[:, i, j] * 10 ** 6).round() / (10 ** 6)
+
+                        # Sigma[:, i, j] = torch.maximum(
+                        #    sigmas[:, index] + raw_sigma_bias,
+                        #    sigma_min_tmp,
+                        # )
+                        # Sigma[:, i, j] += 1  # 1 # Add one on the diagonal
                         index += 1
                     else:
                         if sum(Sigma[:, i, j]).item() == 0:
                             # Set the covariance values
-                            Sigma[:, i, j] = sigmas[:, index]
-                            Sigma[:, j, i] = sigmas[:, index]
+                            Sigma[:, i, j] = sigmas[:, index]  # + raw_sigma_bias
+                            Sigma[:, j, i] = sigmas[:, index]  # + raw_sigma_bias
+
+                            # Sigma[:, i, j] = (Sigma[:, i, j] * 10 ** 6).round() / (
+                            #    10 ** 6
+                            # )
+                            # Sigma[:, j, i] = (Sigma[:, i, j] * 10 ** 6).round() / (
+                            #    10 ** 6
+                            # )
                             index += 1
             # Define the multivariate Gaussian
-            # a = torch.mm(a, a.t()) # make symmetric positive-definite
+            # for i in range(x_decoder.shape[0]):
+            #    Sigma[i, :, :] = torch.mm(
+            #        Sigma[i, :, :], Sigma[i, :, :].t()
+            #    )  # make symmetric positive-definite
             # https://pytorch.org/docs/stable/generated/torch.cholesky.html
+            # https://math.stackexchange.com/questions/357980/how-to-generate-random-symmetric-positive-definite-matrices-using-matlab
             dist = MultivariateNormal(loc=mu, covariance_matrix=Sigma)
 
         else:

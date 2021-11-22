@@ -696,6 +696,7 @@ class VisualiseTrajectories:
         bins=None,
         vmax=None,
         cb_label=None,
+        cmin=10,
     ):
         """Creates a histogram or bar plot
 
@@ -769,7 +770,7 @@ class VisualiseTrajectories:
             if bins is None:
                 bins = 200
             h = ax.hist2d(
-                x, y, bins=bins, cmap=plt.cm.cividis, cmin=10, data=data, vmax=vmax
+                x, y, bins=bins, cmap=plt.cm.cividis, cmin=cmin, data=data, vmax=vmax
             )
             divider = make_axes_locatable(ax)
             cax = divider.append_axes("right", size="5%", pad=0.05)
@@ -784,7 +785,7 @@ class VisualiseTrajectories:
                 y,
                 gridsize=bins,
                 cmap=plt.cm.cividis,
-                mincnt=10,
+                mincnt=cmin,
                 vmax=vmax,
                 data=data,
             )

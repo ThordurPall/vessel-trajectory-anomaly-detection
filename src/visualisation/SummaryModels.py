@@ -65,6 +65,9 @@ class SummaryModels:
 
     intermediate_epoch : int (Defaults to None)
             When not None, the intermediate model saved at epoch intermediate_epoch will be loaded
+
+    generative_dist : str (Defaults to 'Bernoulli')
+        The observation model used
     """
 
     def __init__(
@@ -82,6 +85,8 @@ class SummaryModels:
         model_prefix="",
         inject_cargo_proportion=0.0,
         intermediate_epoch=None,
+        generative_dist="Bernoulli",
+        learning_rate=0.001,
     ):
         """
         Parameters
@@ -124,6 +129,12 @@ class SummaryModels:
 
         intermediate_epoch : int (Defaults to None)
             When not None, the intermediate model saved at epoch intermediate_epoch will be loaded
+
+        generative_dist : str (Defaults to 'Bernoulli')
+            The observation model to use
+
+        learning_rate : float (Defaults to 0.001)
+            How much the models parameters were updated at each batch
         """
 
         super().__init__()
@@ -134,6 +145,8 @@ class SummaryModels:
         self.model_prefix = model_prefix
         self.inject_cargo_proportion = inject_cargo_proportion
         self.intermediate_epoch = intermediate_epoch
+        self.generative_dist = generative_dist
+        self.discrete = True if self.generative_dist == "Bernoulli" else False
 
         # Setup the correct foldure structure
         project_dir = Path(__file__).resolve().parents[2]
@@ -150,11 +163,17 @@ class SummaryModels:
         BatchNorm = "_batchNormTrue" if batch_norm else "_batchNormFalse"
         Scheduler = "_SchedulerTrue" if scheduler else ""
         KLAnneal = "_KLTrue" if kl_annealing else ""
+        LearningRate = (
+            "_lr" + str(learning_rate).replace(".", "")
+            if learning_rate != 0.001
+            else ""
+        )
         cargo_injected = (
             "_Injected" + str(inject_cargo_proportion).replace(".", "")
             if inject_cargo_proportion != 0.0
             else ""
         )
+        GenerativeDist = "_" + self.generative_dist if not self.discrete else ""
         self.model_name = (
             model_prefix
             + model
@@ -166,6 +185,8 @@ class SummaryModels:
             + "_recurrent"
             + recurrent_dim
             + BatchNorm
+            + GenerativeDist
+            + LearningRate
             + Scheduler
             + KLAnneal
         )

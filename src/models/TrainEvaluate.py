@@ -899,6 +899,12 @@ class TrainEvaluate:
         elif num_training_samples is not None:
             num_epochs = int(np.ceil(num_training_samples / self.training_n))
 
+        if learning_rate != 0.001:
+            self.model_name = (
+                self.model_name + "_lr" + str(learning_rate).replace(".", "")
+            )
+            logger.info("Model name with a different learning rate: " + self.model_name)
+
         if use_scheduler:
             # Using a  scheduler
             self.model_name = self.model_name + "_SchedulerTrue"
