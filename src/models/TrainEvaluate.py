@@ -1036,7 +1036,7 @@ class TrainEvaluate:
                 )
             logger.info(
                 "Epoch {} of {} finished. Training loss = {}. Validation loss = {}".format(
-                    epoch, num_epochs, train_results[0], val_results[0]
+                    epoch, num_epochs, loss_tot[-1], val_loss_tot[-1]
                 )
             )
 
