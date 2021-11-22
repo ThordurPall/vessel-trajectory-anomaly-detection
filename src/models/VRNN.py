@@ -1,7 +1,7 @@
 # Please note that some code in this class builds upon work done by Kristoffer Vinther Olesen (@DTU)
 import torch
 from torch import nn
-from torch.distributions import Bernoulli, Normal, MultivariateNormal
+from torch.distributions import Bernoulli, MultivariateNormal, Normal
 
 from src.models.Distributions import ReparameterizedDiagonalGaussian
 
