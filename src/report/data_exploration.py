@@ -22,8 +22,6 @@ def main():  # main(input_filepath, output_filepath):
 
 def show_region_based_heatmaps():
     """Outputs region based heatmaps of AIS messages"""
-    # Setup the correct foldure structure
-
     # Define the regions to look into
     fig_size = (10, 10)
     Denmark = VisualiseTrajectories(
