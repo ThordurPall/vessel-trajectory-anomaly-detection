@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 import logging
+import pickle
 from pathlib import Path
+
 import click
+import numpy as np
+import pandas as pd
 
 from src.visualisation.VisualiseTrajectories import VisualiseTrajectories
-from pathlib import Path
-import pandas as pd
-import numpy as np
-import pickle
 
 
 @click.command()
