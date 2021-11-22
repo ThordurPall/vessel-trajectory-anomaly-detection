@@ -149,9 +149,9 @@ class SummaryModels:
         self.discrete = True if self.generative_dist == "Bernoulli" else False
 
         # Setup the correct foldure structure
-        project_dir = Path(__file__).resolve().parents[2]
-        self.model_dir = project_dir / "models" / "saved-models"
-        self.model_fig_dir = project_dir / "figures" / "models"
+        self.project_dir = Path(__file__).resolve().parents[2]
+        self.model_dir = self.project_dir / "models" / "saved-models"
+        self.model_fig_dir = self.project_dir / "figures" / "models"
         self.learning_curve_dir = self.model_fig_dir / "learning-curves"
         self.reconstruction_dir = self.model_fig_dir / "reconstruction"
 
@@ -285,6 +285,9 @@ class SummaryModels:
         ylims=None,
         fig_size=(18, 5),
         x="Epoch",
+        plot_loss=True,
+        plot_kl=True,
+        plot_recon=True,
     ):
         """Plots the loss, KL divergence, and reconstruction log probabilities side by side
 
@@ -316,31 +319,50 @@ class SummaryModels:
 
         x : str (Defaults to "Epoch")
             The x-axis variable
+
+        plot_loss : bool (Defailts to True)
+            When True the loss learning curve is plotted
+
+        plot_kl : bool (Defailts to True)
+            When True the KL learning curve is plotted
+
+        plot_recon : bool (Defailts to True)
+            When True the reconstruction learning curve is plotted
         """
-        _, ax = plt.subplots(1, 3, figsize=fig_size)
-        sns.lineplot(x=x, y="Loss", hue=hue, hue_order=hue_order, data=df, ax=ax[0])
-        sns.lineplot(
-            x=x, y="KL divergence", hue=hue, hue_order=hue_order, data=df, ax=ax[1]
-        )
-        sns.lineplot(
-            x=x,
-            y="Reconstruction log probabilities",
-            hue=hue,
-            hue_order=hue_order,
-            data=df,
-            ax=ax[2],
-        )
+        n = plot_loss + plot_kl + plot_recon
+        i = 0
+        _, ax = plt.subplots(1, n, figsize=fig_size)
+        ax = [ax] if n == 1 else ax
+
+        # Plot the requested figures
+        if plot_loss:
+            sns.lineplot(x=x, y="Loss", hue=hue, hue_order=hue_order, data=df, ax=ax[i])
+            i += 1
+        if plot_kl:
+            sns.lineplot(
+                x=x, y="KL divergence", hue=hue, hue_order=hue_order, data=df, ax=ax[i]
+            )
+            i += 1
+        if plot_recon:
+            sns.lineplot(
+                x=x,
+                y="Reconstruction log probabilities",
+                hue=hue,
+                hue_order=hue_order,
+                data=df,
+                ax=ax[i],
+            )
+            i += 1
+
         sns.despine()
 
         if xlims is not None:
-            ax[0].set(xlim=xlims[0])
-            ax[1].set(xlim=xlims[1])
-            ax[2].set(xlim=xlims[2])
+            for i in range(n):
+                ax[i].set(xlim=xlims[i])
 
         if ylims is not None:
-            ax[0].set(ylim=ylims[0])
-            ax[1].set(ylim=ylims[1])
-            ax[2].set(ylim=ylims[2])
+            for i in range(n):
+                ax[i].set(ylim=ylims[i])
 
         if title is not None:
             plt.suptitle(title)
@@ -695,7 +717,7 @@ class SummaryModels:
 
         file_path = None
         if file_name is not None:
-            file_path = self.explore_fig_dir / (file_name + ".pdf")
+            file_path = self.learning_curve_dir / (file_name + ".pdf")
         utils.add_plot_extras(
             ax,
             self.save_figures,
@@ -800,7 +822,7 @@ class SummaryModels:
 
         file_path = None
         if file_name is not None:
-            file_path = self.explore_fig_dir / (file_name + ".pdf")
+            file_path = self.learning_curve_dir / (file_name + ".pdf")
         utils.add_plot_extras(
             ax,
             self.save_figures,
