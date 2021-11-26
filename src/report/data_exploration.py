@@ -21,6 +21,7 @@ def main():  # main(input_filepath, output_filepath):
     """
     # show_region_based_heatmaps()
     show_data_summary_plots_Bornholm()
+    # show_data_summary_plots_Skagen()
 
 
 def show_region_based_heatmaps():
@@ -210,6 +211,7 @@ def show_data_summary_plots_Bornholm():
     df["Ship type"] = df["ShipType"]
 
     # Plot the trajectory count for each ship type
+    col_order = [1, 2, 0]
     summary_trajectories.hist_bar_plot(
         df["ShipType"].value_counts().reset_index(name="counts"),
         "Bar",
@@ -218,6 +220,7 @@ def show_data_summary_plots_Bornholm():
         file_name="Bornholm_Summer_trajectory_count_by_shipType",
         xlabel="Trajectory count",
         ylabel="Ship type",
+        col_order=col_order,
     )
 
     # Plot the mean speed histogram for each ship type (zoomed in a bit)
@@ -252,6 +255,77 @@ def show_data_summary_plots_Bornholm():
         hue_order=hue_order,
         xlim=[0, 100000],
         ylim=[0, 700],
+        df_line=df_line,
+    )
+
+
+def show_data_summary_plots_Skagen():
+    """Outputs some data summary plots for the Skagen ROI"""
+    # Use the SummaryTrajectories class
+    fig_size = (10, 10)
+    summary_file = "RegionSkagen_01062019_30092019_FishCargTank_1_315569220_0_trajectories_summary.csv"
+    summary_trajectories = SummaryTrajectories(
+        summary_file,
+        save_figures=True,
+        plot_figures=False,
+        fig_size=fig_size,
+        date="DateTimeStart",
+    )
+    summary_trajectories.explore_fig_dir = (
+        summary_trajectories.project_dir / "figures" / "report" / "regions" / "Skagen"
+    )
+    df = summary_trajectories.df
+    df["Track length (sec)"] = pd.to_datetime(df["DateTimeEnd"]) - pd.to_datetime(
+        df["DateTimeStart"]
+    )
+    df["Track length (sec)"] = df["Track length (sec)"].dt.total_seconds().astype(int)
+    df["Ship type"] = df["ShipType"]
+
+    # Plot the trajectory count for each ship type
+    col_order = [1, 0, 2]
+    summary_trajectories.hist_bar_plot(
+        df["ShipType"].value_counts().reset_index(name="counts"),
+        "Bar",
+        "counts",
+        "index",
+        file_name="Skagen_Summer_trajectory_count_by_shipType",
+        xlabel="Trajectory count",
+        ylabel="Ship type",
+        col_order=col_order,
+    )
+
+    # Plot the mean speed histogram for each ship type (zoomed in a bit)
+    plt.clf()
+    df_hist = df.reset_index()
+    hue_order = ["Fishing", "Cargo", "Tanker"]
+    summary_trajectories.hist_bar_plot(
+        df_hist,
+        "Histogram",
+        "MeanSpeed",
+        file_name="Skagen_mean_speed_histogram_by_shipType",
+        xlabel="Mean speed (knots)",
+        hue="Ship type",
+        hue_order=hue_order,
+        xlim=[-1, 22],
+    )
+
+    # Plot trajectory length (in seconds) for each ship type (zoomed in a bit)
+    plt.clf()
+    df_line = pd.DataFrame(
+        {
+            "x": [86400, 86400],
+            "y": [0, 2250],
+        }
+    )
+    summary_trajectories.hist_bar_plot(
+        df_hist,
+        "Histogram",
+        "Track length (sec)",
+        file_name="Skagen_trajectory_length_histogram_by_shipType",
+        hue="Ship type",
+        hue_order=hue_order,
+        xlim=[0, 200000],
+        ylim=[0, 2250],
         df_line=df_line,
     )
 
