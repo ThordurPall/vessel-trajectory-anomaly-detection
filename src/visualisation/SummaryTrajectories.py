@@ -200,6 +200,7 @@ class SummaryTrajectories:
         xlim=None,
         ylim=None,
         df_line=None,
+        col_order=None,
     ):
         """Creates a histogram or bar plot
 
@@ -240,13 +241,25 @@ class SummaryTrajectories:
 
         df_line : pandas.DataFrame (Defaults to None)
             Possible x and y values for adding a line to the figure
+
+        col_order : list (Defaults to None)
+            The color order to use when plotting
         """
 
         if type == "Histogram":
             ax = sns.histplot(x=x, hue=hue, data=data, hue_order=hue_order)
 
         elif type == "Bar":
-            ax = sns.barplot(x=x, y=y, data=data)
+            palette = None
+            if col_order is not None:
+                palette = [sns.color_palette()[i] for i in col_order]
+
+            ax = sns.barplot(
+                x=x,
+                y=y,
+                data=data,
+                palette=palette,
+            )
             sns.despine()
         else:
             print("Currently only implmented for 'Histogram' and 'Bar'")
