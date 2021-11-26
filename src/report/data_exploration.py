@@ -258,6 +258,38 @@ def show_data_summary_plots_Bornholm():
         df_line=df_line,
     )
 
+    # After Preprocessing
+    plt.clf()
+    summary_file = "RegionBornholm_01062019_30092019_FishCargTank_14400_86400_600_trajectories_summary.csv"
+    summary_trajectories = SummaryTrajectories(
+        summary_file,
+        save_figures=True,
+        plot_figures=False,
+        fig_size=fig_size,
+        date="DateTimeStart",
+    )
+    summary_trajectories.explore_fig_dir = (
+        summary_trajectories.project_dir / "figures" / "report" / "regions" / "Bornholm"
+    )
+    df = summary_trajectories.df
+    df["Track length (sec)"] = pd.to_datetime(df["DateTimeEnd"]) - pd.to_datetime(
+        df["DateTimeStart"]
+    )
+    df["Track length (sec)"] = df["Track length (sec)"].dt.total_seconds().astype(int)
+    df["Ship type"] = df["ShipType"]
+
+    # Plot the trajectory count for each ship type
+    summary_trajectories.hist_bar_plot(
+        df["ShipType"].value_counts().reset_index(name="counts"),
+        "Bar",
+        "counts",
+        "index",
+        file_name="Bornholm_Summer_trajectory_count_by_shipType_After_Preprocessing",
+        xlabel="Trajectory Count",
+        ylabel="Ship type",
+        col_order=col_order,
+    )
+
 
 def show_data_summary_plots_Skagen():
     """Outputs some data summary plots for the Skagen ROI"""
@@ -327,6 +359,38 @@ def show_data_summary_plots_Skagen():
         xlim=[0, 200000],
         ylim=[0, 2250],
         df_line=df_line,
+    )
+
+    # After Preprocessing
+    plt.clf()
+    summary_file = "RegionSkagen_01062019_30092019_FishCargTank_14400_86400_600_trajectories_summary.csv"
+    summary_trajectories = SummaryTrajectories(
+        summary_file,
+        save_figures=True,
+        plot_figures=False,
+        fig_size=fig_size,
+        date="DateTimeStart",
+    )
+    summary_trajectories.explore_fig_dir = (
+        summary_trajectories.project_dir / "figures" / "report" / "regions" / "Skagen"
+    )
+    df = summary_trajectories.df
+    df["Track length (sec)"] = pd.to_datetime(df["DateTimeEnd"]) - pd.to_datetime(
+        df["DateTimeStart"]
+    )
+    df["Track length (sec)"] = df["Track length (sec)"].dt.total_seconds().astype(int)
+    df["Ship type"] = df["ShipType"]
+
+    # Plot the trajectory count for each ship type
+    summary_trajectories.hist_bar_plot(
+        df["ShipType"].value_counts().reset_index(name="counts"),
+        "Bar",
+        "counts",
+        "index",
+        file_name="Skagen_Summer_trajectory_count_by_shipType_After_Preprocessing",
+        xlabel="Trajectory Count",
+        ylabel="Ship type",
+        col_order=col_order,
     )
 
 
