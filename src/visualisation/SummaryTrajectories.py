@@ -86,9 +86,9 @@ class SummaryTrajectories:
         self.date = date
 
         # Setup the correct foldure structure
-        project_dir = Path(__file__).resolve().parents[2]
-        self.processed_data_dir = project_dir / "data" / "processed"
-        self.explore_fig_dir = project_dir / "figures" / "exploration" / "summary"
+        self.project_dir = Path(__file__).resolve().parents[2]
+        self.processed_data_dir = self.project_dir / "data" / "processed"
+        self.explore_fig_dir = self.project_dir / "figures" / "exploration" / "summary"
 
         # Make sure that the summary exploration figures path exists
         self.explore_fig_dir.mkdir(parents=True, exist_ok=True)
@@ -199,6 +199,7 @@ class SummaryTrajectories:
         hue_order=None,
         xlim=None,
         ylim=None,
+        df_line=None,
     ):
         """Creates a histogram or bar plot
 
@@ -236,6 +237,9 @@ class SummaryTrajectories:
 
         ylim : list (Defaults to None)
             Limit of the y-axis
+
+        df_line : pandas.DataFrame (Defaults to None)
+            Possible x and y values for adding a line to the figure
         """
 
         if type == "Histogram":
@@ -246,6 +250,9 @@ class SummaryTrajectories:
             sns.despine()
         else:
             print("Currently only implmented for 'Histogram' and 'Bar'")
+
+        if df_line is not None:
+            ax.plot(df_line["x"], df_line["y"], linewidth=3, color="black")
 
         file_path = None
         if file_name is not None:

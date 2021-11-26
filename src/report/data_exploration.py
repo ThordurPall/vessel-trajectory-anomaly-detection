@@ -4,8 +4,11 @@ import pickle
 from pathlib import Path
 
 import click
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+
+from src.visualisation.SummaryTrajectories import SummaryTrajectories
 from src.visualisation.VisualiseTrajectories import VisualiseTrajectories
 
 
@@ -16,7 +19,8 @@ def main():  # main(input_filepath, output_filepath):
     """Runs code to generate report ready visualization to use for
     data exploration in the report
     """
-    show_region_based_heatmaps()
+    # show_region_based_heatmaps()
+    show_data_summary_plots_Bornholm()
 
 
 def show_region_based_heatmaps():
@@ -180,6 +184,75 @@ def show_region_based_heatmaps():
         cmin=500,
         file_name="AIS_heatmap_Cargo",
         cb_label=cb_label,
+    )
+
+
+def show_data_summary_plots_Bornholm():
+    """Outputs some data summary plots for the Bornholm ROI"""
+    # Use the SummaryTrajectories class
+    fig_size = (10, 10)
+    summary_file = "RegionBornholm_01062019_30092019_FishCargTank_1_315569220_0_trajectories_summary.csv"
+    summary_trajectories = SummaryTrajectories(
+        summary_file,
+        save_figures=True,
+        plot_figures=False,
+        fig_size=fig_size,
+        date="DateTimeStart",
+    )
+    summary_trajectories.explore_fig_dir = (
+        summary_trajectories.project_dir / "figures" / "report" / "regions" / "Bornholm"
+    )
+    df = summary_trajectories.df
+    df["Track length (sec)"] = pd.to_datetime(df["DateTimeEnd"]) - pd.to_datetime(
+        df["DateTimeStart"]
+    )
+    df["Track length (sec)"] = df["Track length (sec)"].dt.total_seconds().astype(int)
+    df["Ship type"] = df["ShipType"]
+
+    # Plot the trajectory count for each ship type
+    summary_trajectories.hist_bar_plot(
+        df["ShipType"].value_counts().reset_index(name="counts"),
+        "Bar",
+        "counts",
+        "index",
+        file_name="Bornholm_Summer_trajectory_count_by_shipType",
+        xlabel="Trajectory count",
+        ylabel="Ship type",
+    )
+
+    # Plot the mean speed histogram for each ship type (zoomed in a bit)
+    plt.clf()
+    df_hist = df.reset_index()
+    hue_order = ["Fishing", "Cargo", "Tanker"]
+    summary_trajectories.hist_bar_plot(
+        df_hist,
+        "Histogram",
+        "MeanSpeed",
+        file_name="Bornholm_mean_speed_histogram_by_shipType",
+        xlabel="Mean speed (knots)",
+        hue="Ship type",
+        hue_order=hue_order,
+        xlim=[-1, 22],
+    )
+
+    # Plot trajectory length (in seconds) for each ship type (zoomed in a bit)
+    plt.clf()
+    df_line = pd.DataFrame(
+        {
+            "x": [86400, 86400],
+            "y": [0, 700],
+        }
+    )
+    summary_trajectories.hist_bar_plot(
+        df_hist,
+        "Histogram",
+        "Track length (sec)",
+        file_name="Bornholm_trajectory_length_histogram_by_shipType",
+        hue="Ship type",
+        hue_order=hue_order,
+        xlim=[0, 100000],
+        ylim=[0, 700],
+        df_line=df_line,
     )
 
 

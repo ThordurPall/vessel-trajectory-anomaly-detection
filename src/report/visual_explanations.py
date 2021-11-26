@@ -9,8 +9,9 @@ import matplotlib.pyplot as plt
 import matplotlib.style as style
 import pandas as pd
 import seaborn as sns
-import src.utils.utils as utils
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+
+import src.utils.utils as utils
 from src.visualisation.VisualiseTrajectories import VisualiseTrajectories
 
 
