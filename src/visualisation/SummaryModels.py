@@ -194,7 +194,7 @@ class SummaryModels:
         # Use seaborn style defaults and set the default figure size
         sns.set(rc={"figure.figsize": self.fig_size})
         sns.set_theme(style="whitegrid")
-        sns.set_context("paper", rc={"lines.linewidth": 3.0})
+        sns.set_context("notebook", rc={"lines.linewidth": 3.0})
         style.use("seaborn-colorblind")
         sns.set_style("ticks")
 
@@ -669,7 +669,7 @@ class SummaryModels:
             If provided, weight the contribution of the corresponding data points towards the count in each bin by these factors
         """
         sns.set_theme(style="whitegrid")
-        sns.set_context("paper", rc={"lines.linewidth": 3.0})
+        sns.set_context("notebook", rc={"lines.linewidth": 3.0})
         style.use("seaborn-colorblind")
 
         if type == "Histogram":
@@ -802,7 +802,7 @@ class SummaryModels:
             When True, summary statistics will also be printed
         """
         sns.set_theme(style="whitegrid")
-        sns.set_context("paper", rc={"lines.linewidth": 3.0})
+        sns.set_context("notebook", rc={"lines.linewidth": 3.0})
         style.use("seaborn-colorblind")
 
         if type == "Histogram":

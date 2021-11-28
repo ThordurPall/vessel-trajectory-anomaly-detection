@@ -136,7 +136,7 @@ class VisualiseTrajectories:
         # sns.set_theme(style="whitegrid")
         sns.set_theme(style="ticks")
         sns.set_context(
-            "paper", rc={"lines.linewidth": 3.0}
+            "notebook", rc={"lines.linewidth": 3.0}
         )  # One of paper, notebook, talk, and poster
         style.use("seaborn-colorblind")
 

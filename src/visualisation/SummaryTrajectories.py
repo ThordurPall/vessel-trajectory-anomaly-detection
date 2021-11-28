@@ -96,7 +96,7 @@ class SummaryTrajectories:
         # Use seaborn style defaults and set the default figure size
         sns.set(rc={"figure.figsize": self.fig_size})
         sns.set_theme(style="whitegrid")
-        sns.set_context("paper", rc={"lines.linewidth": 3.0})
+        sns.set_context("notebook", rc={"lines.linewidth": 3.0})
         style.use("seaborn-colorblind")
 
         # Read in the processed trajectories for exploratory analysis

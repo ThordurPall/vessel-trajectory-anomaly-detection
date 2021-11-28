@@ -20,8 +20,8 @@ def main():  # main(input_filepath, output_filepath):
     data exploration in the report
     """
     # show_region_based_heatmaps()
-    show_data_summary_plots_Bornholm()
-    # show_data_summary_plots_Skagen()
+    # show_data_summary_plots_Bornholm()
+    show_data_summary_plots_Skagen()
 
 
 def show_region_based_heatmaps():
@@ -382,6 +382,7 @@ def show_data_summary_plots_Skagen():
     df["Ship type"] = df["ShipType"]
 
     # Plot the trajectory count for each ship type
+    col_order = [0, 1, 2]
     summary_trajectories.hist_bar_plot(
         df["ShipType"].value_counts().reset_index(name="counts"),
         "Bar",
