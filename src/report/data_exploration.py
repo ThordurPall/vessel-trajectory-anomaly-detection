@@ -19,21 +19,23 @@ def main():  # main(input_filepath, output_filepath):
     """Runs code to generate report ready visualization to use for
     data exploration in the report
     """
-    # show_region_based_heatmaps()
+    show_region_based_heatmaps()
     # show_data_summary_plots_Bornholm()
-    show_data_summary_plots_Skagen()
+    # show_data_summary_plots_Skagen()
 
 
 def show_region_based_heatmaps():
     """Outputs region based heatmaps of AIS messages"""
     # Define the regions to look into
-    fig_size = (10, 10)
+    fig_size = (4, 4)
+    font_scale = 1.5
     Denmark = VisualiseTrajectories(
         region="Denmark",
         save_figures=True,
         plot_figures=False,
         fig_size=fig_size,
         zoom=6,
+        font_scale=font_scale,
     )
     Skagen = VisualiseTrajectories(
         region="Skagen",
@@ -41,6 +43,7 @@ def show_region_based_heatmaps():
         plot_figures=False,
         fig_size=fig_size,
         zoom=7,
+        font_scale=font_scale,
     )
     Bornholm = VisualiseTrajectories(
         region="Bornholm",
@@ -48,6 +51,7 @@ def show_region_based_heatmaps():
         plot_figures=False,
         fig_size=fig_size,
         zoom=8,
+        font_scale=font_scale,
     )
     project_dir = Denmark.project_dir
     processed_data_dir = project_dir / "data" / "processed"
@@ -191,7 +195,7 @@ def show_region_based_heatmaps():
 def show_data_summary_plots_Bornholm():
     """Outputs some data summary plots for the Bornholm ROI"""
     # Use the SummaryTrajectories class
-    fig_size = (10, 10)
+    fig_size = (4, 4)
     summary_file = "RegionBornholm_01062019_30092019_FishCargTank_1_315569220_0_trajectories_summary.csv"
     summary_trajectories = SummaryTrajectories(
         summary_file,
@@ -199,6 +203,7 @@ def show_data_summary_plots_Bornholm():
         plot_figures=False,
         fig_size=fig_size,
         date="DateTimeStart",
+        font_scale=1.5,
     )
     summary_trajectories.explore_fig_dir = (
         summary_trajectories.project_dir / "figures" / "report" / "regions" / "Bornholm"
@@ -267,6 +272,7 @@ def show_data_summary_plots_Bornholm():
         plot_figures=False,
         fig_size=fig_size,
         date="DateTimeStart",
+        font_scale=1.5,
     )
     summary_trajectories.explore_fig_dir = (
         summary_trajectories.project_dir / "figures" / "report" / "regions" / "Bornholm"
@@ -294,7 +300,7 @@ def show_data_summary_plots_Bornholm():
 def show_data_summary_plots_Skagen():
     """Outputs some data summary plots for the Skagen ROI"""
     # Use the SummaryTrajectories class
-    fig_size = (10, 10)
+    fig_size = (4, 4)
     summary_file = "RegionSkagen_01062019_30092019_FishCargTank_1_315569220_0_trajectories_summary.csv"
     summary_trajectories = SummaryTrajectories(
         summary_file,
@@ -302,6 +308,7 @@ def show_data_summary_plots_Skagen():
         plot_figures=False,
         fig_size=fig_size,
         date="DateTimeStart",
+        font_scale=1.5,
     )
     summary_trajectories.explore_fig_dir = (
         summary_trajectories.project_dir / "figures" / "report" / "regions" / "Skagen"
@@ -370,6 +377,7 @@ def show_data_summary_plots_Skagen():
         plot_figures=False,
         fig_size=fig_size,
         date="DateTimeStart",
+        font_scale=1.5,
     )
     summary_trajectories.explore_fig_dir = (
         summary_trajectories.project_dir / "figures" / "report" / "regions" / "Skagen"

@@ -87,6 +87,7 @@ class SummaryModels:
         intermediate_epoch=None,
         generative_dist="Bernoulli",
         learning_rate=0.001,
+        font_scale=1,
     ):
         """
         Parameters
@@ -135,6 +136,9 @@ class SummaryModels:
 
         learning_rate : float (Defaults to 0.001)
             How much the models parameters were updated at each batch
+
+        font_scale : int (Defaults to 1)
+            The font size to use while plotting
         """
 
         super().__init__()
@@ -147,6 +151,7 @@ class SummaryModels:
         self.intermediate_epoch = intermediate_epoch
         self.generative_dist = generative_dist
         self.discrete = True if self.generative_dist == "Bernoulli" else False
+        self.font_scale = font_scale
 
         # Setup the correct foldure structure
         self.project_dir = Path(__file__).resolve().parents[2]
@@ -194,7 +199,9 @@ class SummaryModels:
         # Use seaborn style defaults and set the default figure size
         sns.set(rc={"figure.figsize": self.fig_size})
         sns.set_theme(style="whitegrid")
-        sns.set_context("notebook", rc={"lines.linewidth": 3.0})
+        sns.set_context(
+            "paper", rc={"lines.linewidth": 3.0}, font_scale=self.font_scale
+        )
         style.use("seaborn-colorblind")
         sns.set_style("ticks")
 
@@ -670,7 +677,9 @@ class SummaryModels:
             If provided, weight the contribution of the corresponding data points towards the count in each bin by these factors
         """
         sns.set_theme(style="whitegrid")
-        sns.set_context("notebook", rc={"lines.linewidth": 3.0})
+        sns.set_context(
+            "paper", rc={"lines.linewidth": 3.0}, font_scale=self.font_scale
+        )
         style.use("seaborn-colorblind")
 
         if type == "Histogram":
@@ -803,7 +812,9 @@ class SummaryModels:
             When True, summary statistics will also be printed
         """
         sns.set_theme(style="whitegrid")
-        sns.set_context("notebook", rc={"lines.linewidth": 3.0})
+        sns.set_context(
+            "paper", rc={"lines.linewidth": 3.0}, font_scale=self.font_scale
+        )
         style.use("seaborn-colorblind")
 
         if type == "Histogram":

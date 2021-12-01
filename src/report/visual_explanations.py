@@ -34,7 +34,12 @@ def show_binning():
     # Use the VisualiseTrajectories class
     fig_size = (12, 8)
     visualise_trajectories = VisualiseTrajectories(
-        region, save_figures=True, plot_figures=True, fig_size=fig_size, zoom=zoom
+        region,
+        save_figures=True,
+        plot_figures=True,
+        fig_size=fig_size,
+        zoom=zoom,
+        font_scale=2.2,
     )
 
     # Load the static Google Map image for the RIO

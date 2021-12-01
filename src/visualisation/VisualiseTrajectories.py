@@ -90,6 +90,7 @@ class VisualiseTrajectories:
         fig_size,
         zoom=None,
         continuous_representation=True,
+        font_scale=1,
     ):
         """
         Parameters
@@ -112,6 +113,9 @@ class VisualiseTrajectories:
 
         continuous_representation : bool (Defaults to True)
             Either continuous or discrete AIS trajectory representation
+
+        font_scale : int (Defaults to 1)
+            The font size to use while plotting
         """
 
         super().__init__()
@@ -135,9 +139,7 @@ class VisualiseTrajectories:
         sns.set(rc={"figure.figsize": self.fig_size})
         # sns.set_theme(style="whitegrid")
         sns.set_theme(style="ticks")
-        sns.set_context(
-            "notebook", rc={"lines.linewidth": 3.0}
-        )  # One of paper, notebook, talk, and poster
+        sns.set_context("paper", rc={"lines.linewidth": 3.0}, font_scale=font_scale)
         style.use("seaborn-colorblind")
 
         # Set values from the region config files

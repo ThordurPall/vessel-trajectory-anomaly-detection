@@ -58,7 +58,13 @@ class SummaryTrajectories:
     """
 
     def __init__(
-        self, summary_file, save_figures, plot_figures, fig_size, date="DateTime"
+        self,
+        summary_file,
+        save_figures,
+        plot_figures,
+        fig_size,
+        date="DateTime",
+        font_scale=1,
     ):
         """
         Parameters
@@ -77,6 +83,9 @@ class SummaryTrajectories:
 
         date : str
             Which date should be the main (default) date for plotting
+
+        font_scale : int (Defaults to 1)
+            The font size to use while plotting
         """
 
         super().__init__()
@@ -96,7 +105,7 @@ class SummaryTrajectories:
         # Use seaborn style defaults and set the default figure size
         sns.set(rc={"figure.figsize": self.fig_size})
         sns.set_theme(style="whitegrid")
-        sns.set_context("notebook", rc={"lines.linewidth": 3.0})
+        sns.set_context("paper", rc={"lines.linewidth": 3.0}, font_scale=font_scale)
         style.use("seaborn-colorblind")
 
         # Read in the processed trajectories for exploratory analysis
