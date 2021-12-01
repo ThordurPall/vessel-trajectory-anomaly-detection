@@ -1,5 +1,6 @@
 # Please note that some code in this class builds upon work done by Kristoffer Vinther Olesen (@DTU)
 import logging
+import math
 import time
 from pathlib import Path
 
@@ -93,6 +94,12 @@ class TrainEvaluate:
     generative_dist : str (Defaults to 'Bernoulli')
         The observation model to use
 
+    GMM_components : int (Defaults to 4)
+        The number of components to use as part of the GMM
+
+    GMM_equally_weighted : bool (Defaults to True)
+        When True, all GMM components are equally weighted
+
     Methods
     -------
     loss_function(log_px, log_pz, log_qz, lengths, beta)
@@ -124,6 +131,9 @@ class TrainEvaluate:
         inject_cargo_proportion=0.0,
         intermediate_epoch=None,
         generative_dist="Bernoulli",
+        trained_model_name=None,
+        GMM_components=4,
+        GMM_equally_weighted=True,
     ):
         """
         Parameters
@@ -168,6 +178,15 @@ class TrainEvaluate:
 
         generative_dist : str (Defaults to 'Bernoulli')
             The observation model to use
+
+        trained_model_name : str (Defautls to None)
+            Provides the ability to provide the complete name of the trained model
+
+        GMM_components : int (Defaults to 4)
+            The number of components to use as part of the GMM
+
+        GMM_equally_weighted : bool (Defaults to True)
+            When True, all GMM components are equally weighted
         """
         logger = logging.getLogger(__name__)  # For logging information
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -176,6 +195,8 @@ class TrainEvaluate:
         # Check what type of input feature representation to use
         self.generative_dist = generative_dist
         self.discrete = True if self.generative_dist == "Bernoulli" else False
+        self.GMM_components = GMM_components
+        self.GMM_equally_weighted = GMM_equally_weighted
 
         # Setup the correct foldure structure
         project_dir = Path(__file__).resolve().parents[2]
@@ -466,6 +487,8 @@ class TrainEvaluate:
             generative_bias=self.train_mean,
             device=self.device,
             generative_dist=self.generative_dist,
+            GMM_components=GMM_components,
+            GMM_equally_weighted=GMM_equally_weighted,
         ).to(self.device)
 
         # String that describes the model setup used
@@ -475,7 +498,16 @@ class TrainEvaluate:
             if inject_cargo_proportion != 0.0
             else ""
         )
-        GenerativeDist = "_" + generative_dist if not self.discrete else ""
+        GenerativeDist = "_" + self.generative_dist if not self.discrete else ""
+
+        GMMComponents = ""
+        GMMEquallyWeighted = ""
+        if self.generative_dist == "GMM":
+            GMMComponents = str(self.GMM_components)
+            if self.GMM_equally_weighted:
+                GMMEquallyWeighted = "EW"
+            else:
+                GMMEquallyWeighted = "NEW"
         self.model_name = (
             "VRNN"
             + "_"
@@ -487,17 +519,24 @@ class TrainEvaluate:
             + str(recurrent_dim)
             + batchNorm
             + GenerativeDist
+            + GMMComponents
+            + GMMEquallyWeighted
         )
         logger.info("Model name: " + self.model_name)
 
         if is_trained:
             # Load the previously trained model
-            if intermediate_epoch is not None:
+            if trained_model_name is not None:
+                self.model_name = trained_model_name
+                model_path = self.model_dir / (self.model_name + ".pth")
+            elif intermediate_epoch is not None:
                 model_path = self.model_intermediate_dir / (
                     self.model_name + "_" + str(intermediate_epoch) + ".pth"
                 )
             else:
                 model_path = self.model_dir / (self.model_name + ".pth")
+            print(model_path)
+
             logger.info("Loading previously trained model: " + str(model_path))
             self.model.load_state_dict(torch.load(model_path, map_location=self.device))
             self.model.to(self.device)
@@ -837,6 +876,7 @@ class TrainEvaluate:
         use_scheduler=False,
         num_opt_steps=None,
         num_training_samples=None,
+        plot_after_epoch=False,
     ):
         """Train (and validate with validation set) a deep learning VRNN model
 
@@ -881,6 +921,9 @@ class TrainEvaluate:
         num_training_samples : int (Defaults to None)
             Total nmber of training samples to process during training. When this is not None,
             the num_epoch will be ignored and calculated based on num_training_samples
+
+        plot_after_epoch : bool (Defaults to False)
+            When True, plots are generated to show learning after each epoch
 
         Returns
         -------
@@ -1017,23 +1060,24 @@ class TrainEvaluate:
                 datapoints = np.random.choice(self.validation_n, size=3, replace=False)
             if self.discrete:
                 # TODO: Update for continuous also
-                plotting.make_vae_plots(
-                    (
-                        loss_tot,
-                        kl_tot,
-                        recon_tot,
-                        val_loss_tot,
-                        val_kl_tot,
-                        val_recon_tot,
-                    ),
-                    self.model,
-                    datapoints,
-                    validation_set,
-                    validation_set.data_info["binedges"],
-                    self.device,
-                    figure_path=self.model_intermediate_dir
-                    / (self.model_name + "_Results_" + str(epoch) + ".pdf"),
-                )
+                if plot_after_epoch:
+                    plotting.make_vae_plots(
+                        (
+                            loss_tot,
+                            kl_tot,
+                            recon_tot,
+                            val_loss_tot,
+                            val_kl_tot,
+                            val_recon_tot,
+                        ),
+                        self.model,
+                        datapoints,
+                        validation_set,
+                        validation_set.data_info["binedges"],
+                        self.device,
+                        figure_path=self.model_intermediate_dir
+                        / (self.model_name + "_Results_" + str(epoch) + ".pdf"),
+                    )
             logger.info(
                 "Epoch {} of {} finished. Training loss = {}. Validation loss = {}".format(
                     epoch, num_epochs, loss_tot[-1], val_loss_tot[-1]
@@ -1192,45 +1236,118 @@ class TrainEvaluate:
         ) = data_set[data_set_idx]
         input = input.to(self.device)
         target_device = target.to(self.device)
+        if self.is_FishCargTank:
+            # Select the first data set to get general data information
+            data_set = data_set.datasets[np.random.choice([0, 1])]
 
-        # Initialize a variable to keep track the logits from the model. The dimension
-        # here are the sequence length (t) X 1 (one sample) X input data dimension
-        logits = torch.zeros(
-            length.int().item(), 1, data_set.data_dim, device=self.device
-        )
+        reconstruction_discrete = None
+        if self.generative_dist == "Bernoulli":
+            # Initialize a variable to keep track the logits from the model. The dimension
+            # here are the sequence length (t) X 1 (one sample) X input data dimension
+            logits = torch.zeros(
+                length.int().item(), 1, data_set.data_dim, device=self.device
+            )
 
-        # Use the pretrained model
-        log_px, _, _, logits, _, _, _, _ = self.model(
-            input.unsqueeze(0), target_device.unsqueeze(0), logits=logits
-        )
-        logits = logits.cpu()
+            # Use the pretrained model
+            log_px, _, _, logits, _, _, _, _ = self.model(
+                input.unsqueeze(0), target_device.unsqueeze(0), logits=logits
+            )
+            logits = logits.cpu()
 
-        # Go from the log odds to a four hot encoded discrete representation
-        # Each of lat/lon/speed/course will be one at the max logit but zero everywhere else
-        reconstruction_discrete = plotting.logitToTrack(
-            logits, data_set.data_info["binedges"]
-        )
+            # Go from the log odds to a four hot encoded discrete representation
+            # Each of lat/lon/speed/course will be one at the max logit but zero everywhere else
+            reconstruction_discrete = plotting.logitToTrack(
+                logits, data_set.data_info["binedges"]
+            )
 
-        # Get the reconstructed continuous lat and lon values
-        (
-            reconstruction_lon,
-            reconstruction_lat,
-            reconstruction_speed,
-            reconstruction_course,
-        ) = plotting.PlotDatasetTrack(
-            reconstruction_discrete, data_set.data_info["binedges"]
-        )
-        reconstruction = pd.DataFrame(
-            {
-                "Longitude": reconstruction_lon,
-                "Latitude": reconstruction_lat,
-                "Speed": reconstruction_speed,
-                "Course": reconstruction_course,
-            }
-        )
+            # Get the reconstructed continuous lat and lon values
+            (
+                reconstruction_lon,
+                reconstruction_lat,
+                reconstruction_speed,
+                reconstruction_course,
+            ) = plotting.PlotDatasetTrack(
+                reconstruction_discrete, data_set.data_info["binedges"]
+            )
 
+            reconstruction = pd.DataFrame(
+                {
+                    "Longitude": reconstruction_lon,
+                    "Latitude": reconstruction_lat,
+                    "Speed": reconstruction_speed,
+                    "Course": reconstruction_course,
+                }
+            )
+
+        elif self.generative_dist == "Isotropic_Gaussian":
+            # Initialize variables to keep track of the mean and variance-covariance matrix from the model
+            # The location dimensions are: Sequence length (t) X 1 (one sample) X input data dimension (four-dimensional input)
+            mus = torch.zeros(
+                length.int().item(), 1, data_set.data_dim, device=self.device
+            )
+            # The matrix dimensions are: Sequence length (t) X 1 (one sample) X input data dimension X input data dimension (four-dimensional input)
+            Sigmas = torch.zeros(
+                length.int().item(),
+                1,
+                data_set.data_dim,
+                data_set.data_dim,
+                device=self.device,
+            )
+            # Use the pretrained model
+            log_px, _, _, _, _, _, _, _ = self.model(
+                input.unsqueeze(0),
+                target_device.unsqueeze(0),
+                obs_mus=mus,
+                obs_Sigmas=Sigmas,
+            )
+            mus = mus.cpu()
+            Sigmas = Sigmas.cpu()
+
+            # Get the standard deviation components from the variance-covariance matrix
+            sigmas2 = torch.zeros(
+                length.int().item(),
+                1,
+                data_set.data_dim,
+                device="cpu",
+            )
+            for t in range(length.int().item()):
+                sigmas2[t, 0, :] = torch.FloatTensor(
+                    [Sigmas[t, 0, i, i] for i in range(data_set.data_dim)]
+                )
+            # Get the mean values as lists
+            reconstruction_lat = [x[0] for x in mus[:, :, 0].tolist()]
+            reconstruction_lon = [x[0] for x in mus[:, :, 1].tolist()]
+            reconstruction_speed = [x[0] for x in mus[:, :, 2].tolist()]
+            reconstruction_course = [x[0] for x in mus[:, :, 3].tolist()]
+
+            # Get the scale values as lists
+            sigma_reconstruction_lat = [
+                math.sqrt(x[0]) for x in sigmas2[:, :, 0].tolist()
+            ]
+            sigma_reconstruction_lon = [
+                math.sqrt(x[0]) for x in sigmas2[:, :, 1].tolist()
+            ]
+            sigma_reconstruction_speed = [
+                math.sqrt(x[0]) for x in sigmas2[:, :, 2].tolist()
+            ]
+            sigma_reconstruction_course = [
+                math.sqrt(x[0]) for x in sigmas2[:, :, 3].tolist()
+            ]
+
+            reconstruction = pd.DataFrame(
+                {
+                    "Longitude": reconstruction_lon,
+                    "Latitude": reconstruction_lat,
+                    "Speed": reconstruction_speed,
+                    "Course": reconstruction_course,
+                    "Longitude sigma": sigma_reconstruction_lon,
+                    "Latitude sigma": sigma_reconstruction_lat,
+                    "Speed sigma": sigma_reconstruction_speed,
+                    "Course sigma": sigma_reconstruction_course,
+                }
+            )
         return {
             "Reconstruction": reconstruction,
             "Reconstruction four-hot encoded": reconstruction_discrete,
-            "Reconstruction log probability": log_px,
+            "Reconstruction log probability": [x.item() for x in log_px],
         }

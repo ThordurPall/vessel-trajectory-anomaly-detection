@@ -1,7 +1,9 @@
 # Please note that some code in this class builds upon work done by Kristoffer Vinther Olesen (@DTU)
 import torch
+import torch.distributions as D
+import torch.nn.functional as F
 from torch import nn
-from torch.distributions import Bernoulli, MultivariateNormal, Normal
+from torch.distributions import Bernoulli, MixtureSameFamily, MultivariateNormal, Normal
 
 from src.models.Distributions import ReparameterizedDiagonalGaussian
 
@@ -58,6 +60,12 @@ class VRNN(nn.Module):
     generative_dist : str (Defaults to 'Bernoulli')
         The observation model to use
 
+    GMM_components : int (Defaults to 4)
+        The number of components to use as part of the GMM
+
+    GMM_equally_weighted : bool (Defaults to True)
+        When True, all GMM components are equally weighted
+
     Methods
     -------
     prior(h, sigma_min, raw_sigma_bias)
@@ -82,6 +90,8 @@ class VRNN(nn.Module):
         generative_bias,
         device,
         generative_dist="Bernoulli",
+        GMM_components=4,
+        GMM_equally_weighted=True,
     ):
 
         super(VRNN, self).__init__()
@@ -92,6 +102,8 @@ class VRNN(nn.Module):
         self.generative_bias = generative_bias.to(device)
         self.device = device
         self.generative_dist = generative_dist
+        self.GMM_components = GMM_components
+        self.GMM_equally_weighted = GMM_equally_weighted
 
         # Start by defining the two feature extractors that use a fully connected
         # network with one hidden layer with ReLU activation:
@@ -187,6 +199,26 @@ class VRNN(nn.Module):
                 nn.ReLU(),
                 nn.Linear(self.latent_shape, 2 * self.input_shape),
             ]
+        elif self.generative_dist == "GMM" and self.GMM_equally_weighted:
+            # Return the means and standard deviations for each component (GMM_components*2*input_shape many parameters)
+            layers_decoder = layers_decoder + [
+                nn.ReLU(),
+                nn.Linear(
+                    self.latent_shape, self.GMM_components * 2 * self.input_shape
+                ),
+            ]
+
+        elif self.generative_dist == "GMM" and not self.GMM_equally_weighted:
+            # Return the means and standard deviations for each component.
+            # Also return the mixing probabilities (GMM_components + GMM_components*2*input_shape many parameters)
+            layers_decoder = layers_decoder + [
+                nn.ReLU(),
+                nn.Linear(
+                    self.latent_shape,
+                    self.GMM_components + self.GMM_components * 2 * self.input_shape,
+                ),
+            ]
+
         elif self.generative_dist == "Gaussian":
             # Return the means and variance-covariance matrix (input_shape + (input_shape^2 + input_shape)/2 many parameters)
             layers_decoder = layers_decoder + [
@@ -286,7 +318,7 @@ class VRNN(nn.Module):
         # Return a distribution q(z_t|x_t) = N(z_t|mu_{z,t}, diag(sigma^2_{z,t}))
         return ReparameterizedDiagonalGaussian(mu, sigma)
 
-    def generative(self, z_features, h, sigma_min=0.0, raw_sigma_bias=0.5):
+    def generative(self, z_features, h, sigma_min=0.000001, raw_sigma_bias=0.5):
         """Returns the generating distribution p(x_t|z_t)
 
         Parameters
@@ -314,7 +346,9 @@ class VRNN(nn.Module):
 
             # Create a Bernoulli distribution parameterized by the log-odds of sampling one
             dist = Bernoulli(logits=x_log_odds)
-        elif self.generative_dist == "Isotropic_Gaussian":
+        elif (
+            self.generative_dist == "Isotropic_Gaussian"
+        ):  # Changed to Diagonal Gaussian
             # Return the means and standard deviations from the decoder
             mu, sigma = x_decoder.chunk(2, dim=-1)
 
@@ -323,6 +357,7 @@ class VRNN(nn.Module):
             sigma = torch.maximum(
                 torch.nn.functional.softplus(sigma + raw_sigma_bias), sigma_min
             )
+            # sigma = torch.maximum(sigma, sigma_min)
 
             dist = MultivariateNormal(
                 loc=mu,
@@ -331,7 +366,60 @@ class VRNN(nn.Module):
                 ),
             )
 
-        elif self.generative_dist == "Gaussian":
+        elif self.generative_dist == "GMM" and self.GMM_equally_weighted:
+            # Return all (for every component) means and standard deviations from the decoder
+            mu, sigma = x_decoder.chunk(2, dim=-1)
+
+            # Make sure that sigma is non-negative
+            sigma_min = torch.full_like(sigma, sigma_min)
+            sigma = torch.maximum(
+                torch.nn.functional.softplus(sigma + raw_sigma_bias), sigma_min
+            )
+            # sigma = torch.maximum(sigma, sigma_min)
+
+            # Get the right shapes for the mean and stanard deviation alues
+            batch_n = mu.shape[0]
+            mu = mu.view(batch_n, self.GMM_components, self.input_shape)
+            sigma = sigma.view(batch_n, self.GMM_components, self.input_shape)
+
+            # Construct a batch of Gaussian Mixture Modles in input_shape-D consisting of
+            # GMM_components equally weighted input_shape-D Gaussian distributions
+            mix_probs = torch.ones(batch_n, self.GMM_components, device=self.device)
+            mix = D.Categorical(mix_probs)
+            comp = D.Independent(D.Normal(mu, sigma), 1)
+            gmm = MixtureSameFamily(mix, comp)
+            dist = gmm
+
+        elif self.generative_dist == "GMM" and not self.GMM_equally_weighted:
+            # Get the mixing probabilities from the decoder
+            mix_probs = x_decoder[:, : self.GMM_components]
+
+            # Return all (for every component) means and standard deviations from the decoder
+            mu, sigma = x_decoder[:, self.GMM_components :].chunk(2, dim=-1)
+
+            # Make sure that sigma is non-negative
+            sigma_min = torch.full_like(sigma, sigma_min)
+            sigma = torch.maximum(
+                torch.nn.functional.softplus(sigma + raw_sigma_bias), sigma_min
+            )
+            # sigma = torch.maximum(sigma, sigma_min)
+
+            # Get the right shapes for the mean and stanard deviation alues
+            batch_n = mu.shape[0]
+            mu = mu.view(batch_n, self.GMM_components, self.input_shape)
+            sigma = sigma.view(batch_n, self.GMM_components, self.input_shape)
+
+            # Ensure that the mixing probabilities are between zero and one and sum to one
+            mix_probs = F.softmax(mix_probs, dim=1)
+
+            # Construct a batch of Gaussian Mixture Modles in input_shape-D consisting of
+            # GMM_components equally weighted input_shape-D Gaussian distributions
+            mix = D.Categorical(mix_probs)
+            comp = D.Independent(D.Normal(mu, sigma), 1)
+            gmm = MixtureSameFamily(mix, comp)
+            dist = gmm
+
+        elif self.generative_dist == "Gaussian":  # TODO
             # Return the means and variance-covariance matrix from the decoder
             mu = x_decoder[:, 0 : self.input_shape]
             sigmas = x_decoder[:, self.input_shape :]
@@ -394,7 +482,16 @@ class VRNN(nn.Module):
         return dist
 
     def forward(
-        self, inputs, targets, logits=None, hs=None, zs=None, z_mus=None, z_sigmas=None
+        self,
+        inputs,
+        targets,
+        logits=None,
+        hs=None,
+        zs=None,
+        z_mus=None,
+        z_sigmas=None,
+        obs_mus=None,
+        obs_Sigmas=None,
     ):
         """Computes the log probabilities that can be used in the VRNN loss function
 
@@ -420,6 +517,11 @@ class VRNN(nn.Module):
 
         z_sigmas :
             When not None, the approximate posterior distributions SD are saved and returned (Defaults to None)
+
+        obs_mus :
+            When not None, the location values of the Gaussian observation model are saved and returned (Defaults to None)
+        obs_Sigmas :
+            When not None, the variance-covariance matrix values of the Gaussian observation model are saved and returned (Defaults to None)
 
         Returns
         -------
@@ -520,18 +622,21 @@ class VRNN(nn.Module):
             )  # Check why to sum over the input feature dimension
 
             # Save the requested variables
-            if (
-                logits is not None
-            ):  # Save the logits from the Bernoulli distribution - To look at that distribution
+            if logits is not None:
+                # Save the logits from the Bernoulli distribution - To look at that distribution
                 logits[t, :, :] = px_t.logits
             if hs is not None:  # Save the hidden state from the LSTM cells
                 hs[t, :, :] = output_t
             if zs is not None:
                 zs[t, :, :] = z_t  # Save the sampled latent random variables
-            if (
-                z_mus is not None
-            ):  # Save the approximate posterior distributions mean and standard deviation
+            if z_mus is not None:
+                # Save the approximate posterior distributions mean and standard deviation
                 z_mus[t, :, :] = qz_t.mu
             if z_sigmas is not None:
                 z_sigmas[t, :, :] = qz_t.sigma
+            if obs_mus is not None:
+                # Save the observation model mean and variance-covariance matrix
+                obs_mus[t, :, :] = px_t.loc
+            if obs_Sigmas is not None:
+                obs_Sigmas[t, :, :, :] = px_t.covariance_matrix
         return log_px, log_pz, log_qz, logits, hs, zs, z_mus, z_sigmas

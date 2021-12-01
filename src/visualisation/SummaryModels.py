@@ -466,6 +466,8 @@ class SummaryModels:
             fishing_new_file=fishing_new_file,
             inject_cargo_proportion=self.inject_cargo_proportion,
             intermediate_epoch=self.intermediate_epoch,
+            generative_dist=self.generative_dist,
+            trained_model_name=self.model_name,
         )
 
         # Check which data set to actually use when running the evaluation loop
@@ -591,7 +593,6 @@ class SummaryModels:
             df = df.sort_values(
                 "Equally weighted reconstruction log probability", ascending=worst
             )
-        breakpoint()
         return {
             "TrajectoryLevelData": df.head(n),
             "TrainEvaluateObject": data["TrainEvaluateObject"],

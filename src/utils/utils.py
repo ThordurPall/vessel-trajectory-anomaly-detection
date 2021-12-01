@@ -156,7 +156,7 @@ def get_track_by_index(
         The column names to use for the returned data frame
 
     continuous_representation : bool (Defaults to True)
-            Either continuous or discrete AIS trajectory representation
+        Either continuous or discrete AIS trajectory representation
 
     Returns
     ----------
@@ -220,56 +220,56 @@ def get_tracks_from_dataset(
     pandas.DataFrame
         Data frame with the requested trajectory
     """
-    if continuous_representation:
-        print("Not implmented")
+    mmsis, indicies, data_set_indicies, longitudes, latitudes = [], [], [], [], []
+    speeds, courses, ship_types, track_lengths, times = [], [], [], [], []
+    for i in range(0, len(data_set)):
+        (
+            data_set_index,
+            file_location_index,
+            mmsi,
+            time,
+            ship_type,
+            track_length,
+            inputs,
+            target,
+        ) = data_set[i]
 
-    else:
-        # Discrete AIS trajectory representation
-        mmsis, indicies, data_set_indicies, longitudes, latitudes = [], [], [], [], []
-        speeds, courses, ship_types, track_lengths, times = [], [], [], [], []
-        for i in range(0, len(data_set)):
-            (
-                data_set_index,
-                file_location_index,
-                mmsi,
-                time,
-                ship_type,
-                track_length,
-                inputs,
-                target,
-            ) = data_set[i]
-
-            # The targets are the actual tracks (not centered)
+        # The targets are the actual tracks (not standardized)
+        if continuous_representation:
+            lat = target[:, 0].tolist()
+            lon = target[:, 1].tolist()
+            speed = target[:, 2].tolist()
+            course = target[:, 3].tolist()
+        else:
+            # Discrete AIS trajectory representation
             lon, lat, speed, course = plotting.PlotDatasetTrack(
                 target, data_set.data_info["binedges"]
             )
-            longitudes.extend(lon)
-            latitudes.extend(lat)
-            speeds.extend(speed)
-            courses.extend(course)
-            n = len(lat)
-            indicies += [data_set.indicies[i]] * n
-            data_set_indicies += [i] * n
-            mmsis += [mmsi.item()] * n
-            ship_types += [dataset_utils.convertShipLabelToType(ship_type.item())] * n
-            times += list(time)
-
-            track_lengths += [track_length.item()] * n
-        df = pd.DataFrame(
-            {
-                "Data set Index": data_set_indicies,
-                "Index": indicies,
-                "MMSI": mmsis,
-                "Longitude": longitudes,
-                "Latitude": latitudes,
-                "Speed": speeds,
-                "Course": courses,
-                "Ship type": ship_types,
-                "Track length": track_lengths,
-                "Time stamp": times,
-            }
-        )
-
+        longitudes.extend(lon)
+        latitudes.extend(lat)
+        speeds.extend(speed)
+        courses.extend(course)
+        n = len(lat)
+        indicies += [data_set.indicies[i]] * n
+        data_set_indicies += [i] * n
+        mmsis += [mmsi.item()] * n
+        ship_types += [dataset_utils.convertShipLabelToType(ship_type.item())] * n
+        times += list(time)
+        track_lengths += [track_length.item()] * n
+    df = pd.DataFrame(
+        {
+            "Data set Index": data_set_indicies,
+            "Index": indicies,
+            "MMSI": mmsis,
+            "Longitude": longitudes,
+            "Latitude": latitudes,
+            "Speed": speeds,
+            "Course": courses,
+            "Ship type": ship_types,
+            "Track length": track_lengths,
+            "Time stamp": times,
+        }
+    )
     if keep_cols is not None:
         df = df[keep_cols]
     if col_names is not None:
