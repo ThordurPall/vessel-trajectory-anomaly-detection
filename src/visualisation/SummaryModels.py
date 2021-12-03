@@ -46,6 +46,12 @@ class SummaryModels:
     fig_size : tuple
         Default figure size to use for visualisations
 
+    GMM_components : int (Defaults to 4)
+          The number of components to use as part of the GMM
+
+    GMM_equally_weighted : bool (Defaults to True)
+        When True, all GMM components are equally weighted
+
     Methods
     -------
     load_curves_df(setup_type, validation_only)
@@ -87,6 +93,8 @@ class SummaryModels:
         generative_dist="Bernoulli",
         learning_rate=0.001,
         font_scale=1,
+        GMM_components=4,
+        GMM_equally_weighted=True,
         scheduler_gamma=None,
         scheduler_step_size=1,
     ):
@@ -138,6 +146,12 @@ class SummaryModels:
         font_scale : int (Defaults to 1)
             The font size to use while plotting
 
+        GMM_components : int (Defaults to 4)
+          The number of components to use as part of the GMM
+
+        GMM_equally_weighted : bool (Defaults to True)
+            When True, all GMM components are equally weighted
+
         scheduler_gamma : float (Defaults to None)
             Multiplicative factor of learning rate decay. When None,
             no learning rate decay was applied
@@ -157,6 +171,8 @@ class SummaryModels:
         self.generative_dist = generative_dist
         self.discrete = True if self.generative_dist == "Bernoulli" else False
         self.font_scale = font_scale
+        self.GMM_components = GMM_components
+        self.GMM_equally_weighted = GMM_equally_weighted
 
         # Setup the correct foldure structure
         self.project_dir = Path(__file__).resolve().parents[2]
@@ -171,6 +187,7 @@ class SummaryModels:
 
         # Construct the entire model name string for the current model setup
         BatchNorm = "_batchNormTrue" if batch_norm else "_batchNormFalse"
+        Scheduler = ""
         if scheduler_gamma is not None:
             Scheduler = (
                 "_S"
@@ -191,6 +208,15 @@ class SummaryModels:
             else ""
         )
         GenerativeDist = "_" + self.generative_dist if not self.discrete else ""
+        GMMComponents = ""
+        GMMEquallyWeighted = ""
+        if self.generative_dist == "GMM":
+            GMMComponents = str(self.GMM_components)
+            if self.GMM_equally_weighted:
+                GMMEquallyWeighted = "EW"
+            else:
+                GMMEquallyWeighted = "NEW"
+
         self.model_name = (
             model_prefix
             + model
@@ -203,6 +229,8 @@ class SummaryModels:
             + recurrent_dim
             + BatchNorm
             + GenerativeDist
+            + GMMComponents
+            + GMMEquallyWeighted
             + LearningRate
             + Scheduler
             + KLAnneal
