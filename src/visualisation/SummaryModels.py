@@ -80,7 +80,6 @@ class SummaryModels:
         latent_dim="100",
         recurrent_dim="100",
         batch_norm=False,
-        scheduler=False,
         kl_annealing=False,
         model_prefix="",
         inject_cargo_proportion=0.0,
@@ -88,6 +87,8 @@ class SummaryModels:
         generative_dist="Bernoulli",
         learning_rate=0.001,
         font_scale=1,
+        scheduler_gamma=None,
+        scheduler_step_size=1,
     ):
         """
         Parameters
@@ -116,9 +117,6 @@ class SummaryModels:
         batch_norm : bool (Defaults to False)
             When set to True, batch normalization was included in the networks
 
-        scheduler : bool (Defaults to False)
-            When set to true a Scheduler was used
-
         kl_annealing : bool (Defaults to False)
             When set to true a Kullback–Leibler annealing was done
 
@@ -139,6 +137,13 @@ class SummaryModels:
 
         font_scale : int (Defaults to 1)
             The font size to use while plotting
+
+        scheduler_gamma : float (Defaults to None)
+            Multiplicative factor of learning rate decay. When None,
+            no learning rate decay was applied
+
+        scheduler_step_size : int (Defaults to 1)
+            Decays the learning rate of each parameter group by gamma every step_size epochs
         """
 
         super().__init__()
@@ -166,7 +171,14 @@ class SummaryModels:
 
         # Construct the entire model name string for the current model setup
         BatchNorm = "_batchNormTrue" if batch_norm else "_batchNormFalse"
-        Scheduler = "_SchedulerTrue" if scheduler else ""
+        if scheduler_gamma is not None:
+            Scheduler = (
+                "_S"
+                + str(scheduler_step_size)
+                + "_"
+                + str(scheduler_gamma).replace(".", "")
+            )
+
         KLAnneal = "_KLTrue" if kl_annealing else ""
         LearningRate = (
             "_lr" + str(learning_rate).replace(".", "")

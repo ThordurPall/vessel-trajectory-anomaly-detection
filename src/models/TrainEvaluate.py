@@ -873,10 +873,11 @@ class TrainEvaluate:
         learning_rate=0.001,
         kl_weight=1,
         kl_anneling_start=1,
-        use_scheduler=False,
         num_opt_steps=None,
         num_training_samples=None,
         plot_after_epoch=False,
+        scheduler_gamma=None,
+        scheduler_step_size=1,
     ):
         """Train (and validate with validation set) a deep learning VRNN model
 
@@ -911,9 +912,6 @@ class TrainEvaluate:
             Starting value of the Kullback–Leibler divergence loss. When set to 0, the value is
             annealed to kl_weight over 10 epochs
 
-        use_scheduler : bool (Defaults to False)
-            When set to true a Scheduler will be introduced and used
-
         num_opt_steps : int (Defaults to None)
             Total nmber of optimization steps to perform during training. When this is not None,
             the num_epoch will be ignored and calculated based on num_opt_steps
@@ -924,6 +922,13 @@ class TrainEvaluate:
 
         plot_after_epoch : bool (Defaults to False)
             When True, plots are generated to show learning after each epoch
+
+        scheduler_gamma : float (Defaults to None)
+            Multiplicative factor of learning rate decay. When None,
+            no learning rate decay is applied
+
+        scheduler_step_size : int (Defaults to 1)
+            Decays the learning rate of each parameter group by gamma every step_size epochs
 
         Returns
         -------
@@ -948,14 +953,22 @@ class TrainEvaluate:
             )
             logger.info("Model name with a different learning rate: " + self.model_name)
 
-        if use_scheduler:
-            # Using a  scheduler
-            self.model_name = self.model_name + "_SchedulerTrue"
+        if scheduler_gamma is not None:
+            # Using a scheduler
+            scheduler_step_size
+            self.model_name = (
+                self.model_name
+                + "_S"
+                + str(scheduler_step_size)
+                + "_"
+                + str(scheduler_gamma).replace(".", "")
+            )
             logger.info("Model name with scheduler: " + self.model_name)
             # Milestones are epochs where the learning rate is decreased by a factor of 0.3
-            scheduler = torch.optim.lr_scheduler.MultiStepLR(
-                optimizer, milestones=[2, 10, 20], gamma=0.3
+            scheduler = torch.optim.lr_scheduler.StepLR(
+                optimizer, step_size=scheduler_step_size, gamma=scheduler_gamma
             )
+            use_scheduler = True
 
         # Keep track of losses, KL divergence, and reconstructions on an epoch level
         loss_tot, kl_tot, recon_tot = [], [], []
@@ -1044,8 +1057,15 @@ class TrainEvaluate:
                 fish_new_val_kl_tot.append(val_results[1])
                 fish_new_val_recon_tot.append(val_results[2])
 
+            # Check if a scheduler step should be taken as well
             if use_scheduler:
+                logger.info(
+                    "Learning rate before scheduler.step: " + str(scheduler.get_lr())
+                )
                 scheduler.step()
+                logger.info(
+                    "Learning rate after scheduler.step: " + str(scheduler.get_lr())
+                )
 
             # Plot three random validation trajectories
             if self.is_FishCargTank:
