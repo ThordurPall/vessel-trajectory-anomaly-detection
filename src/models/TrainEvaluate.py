@@ -1366,6 +1366,86 @@ class TrainEvaluate:
                     "Course sigma": sigma_reconstruction_course,
                 }
             )
+
+        elif self.generative_dist == "GMM" and not self.GMM_equally_weighted:
+            # Initialize variables to keep track of the mixing probabilities, location, and scale parameters from the models
+            # The mixing probabilities dimensions are: Sequence length (t) X 1 (one sample) X GMM_components
+            mix_probs = torch.zeros(
+                length.int().item(),
+                1,
+                self.GMM_components,
+                device=self.device,
+            )
+
+            # The location dimensions are: Sequence length (t) X 1 (one sample) X GMM_components X input data dimension (four-dimensional input)
+            mus = torch.zeros(
+                length.int().item(),
+                1,
+                self.GMM_components,
+                data_set.data_dim,
+                device=self.device,
+            )
+
+            # The Gaussians have a diagonal variance-covariance structure so only the scale parameter is stored
+            # The dimensions are: Sequence length (t) X 1 (one sample) X GMM_components X input data dimension (four-dimensional input)
+            sigmas = torch.zeros(
+                length.int().item(),
+                1,
+                self.GMM_components,
+                data_set.data_dim,
+                device=self.device,
+            )
+            # Use the pretrained model
+            log_px, _, _, _, _, _, _, _ = self.model(
+                input.unsqueeze(0),
+                target_device.unsqueeze(0),
+                obs_mus=mus,
+                obs_Sigmas=sigmas,
+                obs_probs=mix_probs,
+            )
+            mus = mus.cpu()
+            sigmas = sigmas.cpu()
+            mix_probs = mix_probs.cpu()
+
+            # Get the parameter values as lists and by the max component
+            reconstruction_lat, reconstruction_lon = [], []
+            reconstruction_speed, reconstruction_course = [], []
+            sigma_reconstruction_lon, sigma_reconstruction_lat = [], []
+            sigma_reconstruction_speed, sigma_reconstruction_course = [], []
+            max_mixing_i, max_mixing_probs = [], []
+
+            for t in range(length.int().item()):
+                # Find the maximum component and its probability
+                mix_probs_t = mix_probs[t, :, :].tolist()[0]
+                max_i = mix_probs_t.index(max(mix_probs_t))
+                max_mixing_i.append(max_i)
+                max_mixing_probs.append(max(mix_probs_t))
+
+                # Store the corresponding location and scale
+                reconstruction_lat.append(mus[t, :, max_i, 0].item())
+                reconstruction_lon.append(mus[t, :, max_i, 1].item())
+                reconstruction_speed.append(mus[t, :, max_i, 2].item())
+                reconstruction_course.append(mus[t, :, max_i, 3].item())
+
+                sigma_reconstruction_lat.append(sigmas[t, :, max_i, 0].item())
+                sigma_reconstruction_lon.append(sigmas[t, :, max_i, 1].item())
+                sigma_reconstruction_speed.append(sigmas[t, :, max_i, 2].item())
+                sigma_reconstruction_course.append(sigmas[t, :, max_i, 3].item())
+
+            reconstruction = pd.DataFrame(
+                {
+                    "Longitude": reconstruction_lon,
+                    "Latitude": reconstruction_lat,
+                    "Speed": reconstruction_speed,
+                    "Course": reconstruction_course,
+                    "Longitude sigma": sigma_reconstruction_lon,
+                    "Latitude sigma": sigma_reconstruction_lat,
+                    "Speed sigma": sigma_reconstruction_speed,
+                    "Course sigma": sigma_reconstruction_course,
+                    "Max mixing index": max_mixing_i,
+                    "Max mixing probability": max_mixing_probs,
+                }
+            )
         return {
             "Reconstruction": reconstruction,
             "Reconstruction four-hot encoded": reconstruction_discrete,

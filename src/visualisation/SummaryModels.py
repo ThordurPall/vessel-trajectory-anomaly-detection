@@ -515,6 +515,8 @@ class SummaryModels:
             intermediate_epoch=self.intermediate_epoch,
             generative_dist=self.generative_dist,
             trained_model_name=self.model_name,
+            GMM_components=self.GMM_components,
+            GMM_equally_weighted=self.GMM_equally_weighted,
         )
 
         # Check which data set to actually use when running the evaluation loop

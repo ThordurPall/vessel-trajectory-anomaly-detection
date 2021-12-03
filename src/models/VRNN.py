@@ -492,6 +492,7 @@ class VRNN(nn.Module):
         z_sigmas=None,
         obs_mus=None,
         obs_Sigmas=None,
+        obs_probs=None,
     ):
         """Computes the log probabilities that can be used in the VRNN loss function
 
@@ -520,8 +521,12 @@ class VRNN(nn.Module):
 
         obs_mus :
             When not None, the location values of the Gaussian observation model are saved and returned (Defaults to None)
+
         obs_Sigmas :
             When not None, the variance-covariance matrix values of the Gaussian observation model are saved and returned (Defaults to None)
+
+        obs_probs :
+            When not None, the mixing probabilities values of the GMM observation model are saved and returned (Defaults to None)
 
         Returns
         -------
@@ -635,8 +640,18 @@ class VRNN(nn.Module):
             if z_sigmas is not None:
                 z_sigmas[t, :, :] = qz_t.sigma
             if obs_mus is not None:
-                # Save the observation model mean and variance-covariance matrix
-                obs_mus[t, :, :] = px_t.loc
+                if self.generative_dist == "GMM":
+                    # Save the observation model mean and variance-covariance matrix
+                    obs_mus[t, :, :, :] = px_t.component_distribution.base_dist.loc
+                else:
+                    # Save the observation model mean and variance-covariance matrix
+                    obs_mus[t, :, :] = px_t.loc
             if obs_Sigmas is not None:
-                obs_Sigmas[t, :, :, :] = px_t.covariance_matrix
+                if self.generative_dist == "GMM":
+                    obs_Sigmas[t, :, :, :] = px_t.component_distribution.base_dist.scale
+                else:
+                    obs_Sigmas[t, :, :, :] = px_t.covariance_matrix
+            if obs_probs is not None:
+                # Track the mixing probabilities
+                obs_probs[t, :, :] = px_t.mixture_distribution.probs
         return log_px, log_pz, log_qz, logits, hs, zs, z_mus, z_sigmas
