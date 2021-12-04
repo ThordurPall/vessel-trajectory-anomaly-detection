@@ -1240,7 +1240,8 @@ class TrainEvaluate:
 
         Returns
         -------
-         :
+        pandas.DataFrame
+            Data frame containing the reconstructions and other useful information
 
         """
         self.model.eval()
