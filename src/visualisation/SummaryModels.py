@@ -97,6 +97,7 @@ class SummaryModels:
         GMM_equally_weighted=True,
         scheduler_gamma=None,
         scheduler_step_size=1,
+        scheduler_milestones=None,
     ):
         """
         Parameters
@@ -158,6 +159,9 @@ class SummaryModels:
 
         scheduler_step_size : int (Defaults to 1)
             Decays the learning rate of each parameter group by gamma every step_size epochs
+
+        scheduler_milestones : list (Defaults to None)
+            The epochs where the learning rate is decreased by a factor of scheduler_gamma
         """
 
         super().__init__()
@@ -189,12 +193,20 @@ class SummaryModels:
         BatchNorm = "_batchNormTrue" if batch_norm else "_batchNormFalse"
         Scheduler = ""
         if scheduler_gamma is not None:
-            Scheduler = (
-                "_S"
-                + str(scheduler_step_size)
-                + "_"
-                + str(scheduler_gamma).replace(".", "")
-            )
+            if scheduler_milestones is not None:
+                Scheduler = (
+                    "_S"
+                    + "".join([str(i) for i in scheduler_milestones])
+                    + "_"
+                    + str(scheduler_gamma).replace(".", "")
+                )
+            else:
+                Scheduler = (
+                    "_S"
+                    + str(scheduler_step_size)
+                    + "_"
+                    + str(scheduler_gamma).replace(".", "")
+                )
 
         KLAnneal = "_KLTrue" if kl_annealing else ""
         LearningRate = (

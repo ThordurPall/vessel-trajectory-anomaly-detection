@@ -878,6 +878,7 @@ class TrainEvaluate:
         plot_after_epoch=False,
         scheduler_gamma=None,
         scheduler_step_size=1,
+        scheduler_milestones=None,
     ):
         """Train (and validate with validation set) a deep learning VRNN model
 
@@ -930,6 +931,9 @@ class TrainEvaluate:
         scheduler_step_size : int (Defaults to 1)
             Decays the learning rate of each parameter group by gamma every step_size epochs
 
+        scheduler_milestones : list (Defaults to None)
+            The epochs where the learning rate is decreased by a factor of scheduler_gamma
+
         Returns
         -------
         model : src.models.VRNN
@@ -953,22 +957,33 @@ class TrainEvaluate:
             )
             logger.info("Model name with a different learning rate: " + self.model_name)
 
+        use_scheduler = False
         if scheduler_gamma is not None:
             # Using a scheduler
-            scheduler_step_size
-            self.model_name = (
-                self.model_name
-                + "_S"
-                + str(scheduler_step_size)
-                + "_"
-                + str(scheduler_gamma).replace(".", "")
-            )
-            logger.info("Model name with scheduler: " + self.model_name)
-            # Milestones are epochs where the learning rate is decreased by a factor of 0.3
-            scheduler = torch.optim.lr_scheduler.StepLR(
-                optimizer, step_size=scheduler_step_size, gamma=scheduler_gamma
-            )
             use_scheduler = True
+            if scheduler_milestones is not None:
+                self.model_name = (
+                    self.model_name
+                    + "_S"
+                    + "".join([str(i) for i in scheduler_milestones])
+                    + "_"
+                    + str(scheduler_gamma).replace(".", "")
+                )
+                scheduler = torch.optim.lr_scheduler.MultiStepLR(
+                    optimizer, milestones=scheduler_milestones, gamma=scheduler_gamma
+                )
+            else:
+                self.model_name = (
+                    self.model_name
+                    + "_S"
+                    + str(scheduler_step_size)
+                    + "_"
+                    + str(scheduler_gamma).replace(".", "")
+                )
+                scheduler = torch.optim.lr_scheduler.StepLR(
+                    optimizer, step_size=scheduler_step_size, gamma=scheduler_gamma
+                )
+            logger.info("Model name with scheduler: " + self.model_name)
 
         # Keep track of losses, KL divergence, and reconstructions on an epoch level
         loss_tot, kl_tot, recon_tot = [], [], []
