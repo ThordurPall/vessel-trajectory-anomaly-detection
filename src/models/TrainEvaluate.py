@@ -1299,7 +1299,10 @@ class TrainEvaluate:
                 }
             )
 
-        elif self.generative_dist == "Isotropic_Gaussian":
+        elif (
+            self.generative_dist == "Isotropic_Gaussian"
+            or self.generative_dist == "Diagonal"
+        ):
             # Initialize variables to keep track of the mean and variance-covariance matrix from the model
             # The location dimensions are: Sequence length (t) X 1 (one sample) X input data dimension (four-dimensional input)
             mus = torch.zeros(

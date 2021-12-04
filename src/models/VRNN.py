@@ -193,7 +193,10 @@ class VRNN(nn.Module):
                 nn.ReLU(),
                 nn.Linear(self.latent_shape, self.input_shape),
             ]
-        elif self.generative_dist == "Isotropic_Gaussian":
+        elif (
+            self.generative_dist == "Isotropic_Gaussian"
+            or self.generative_dist == "Diagonal"
+        ):
             # Return the means and standard deviations (2*input_shape many parameters)
             layers_decoder = layers_decoder + [
                 nn.ReLU(),
@@ -230,9 +233,7 @@ class VRNN(nn.Module):
                 ),
             ]
         else:
-            print(
-                "Currently only implmented for 'Bernoulli', 'Isotropic_Gaussian', 'Gaussian'"
-            )
+            print("Currently only implmented for 'Bernoulli', 'Diagonal', 'Gaussian'")
         self.decoder = torch.nn.Sequential(*layers_decoder)
 
         # Define an RNN that updates its hidden state with a recurrence equation that uses feature extracted x_t and z_t
@@ -348,6 +349,7 @@ class VRNN(nn.Module):
             dist = Bernoulli(logits=x_log_odds)
         elif (
             self.generative_dist == "Isotropic_Gaussian"
+            or self.generative_dist == "Diagonal"
         ):  # Changed to Diagonal Gaussian
             # Return the means and standard deviations from the decoder
             mu, sigma = x_decoder.chunk(2, dim=-1)
@@ -474,9 +476,7 @@ class VRNN(nn.Module):
             dist = MultivariateNormal(loc=mu, covariance_matrix=Sigma)
 
         else:
-            print(
-                "Currently only implmented for 'Bernoulli', 'Isotropic_Gaussian', 'Gaussian'"
-            )
+            print("Currently only implmented for 'Bernoulli', 'Diagonal', 'Gaussian'")
 
         # Return a distribution p(x_t|z_t)
         return dist
