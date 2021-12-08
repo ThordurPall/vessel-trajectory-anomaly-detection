@@ -4,7 +4,8 @@ from typing import *
 import matplotlib.pyplot as plt
 import numpy as np
 import progressbar
-import requests
+
+# import requests
 import seaborn as sns
 import torch
 from sklearn.manifold import TSNE
@@ -91,8 +92,8 @@ def createStaticMap(edges, api_key, file_path, zoom=8):
 
     # get method of requests module
     # return response object
-    r = requests.get(url)
-    print(url)
+    # r = requests.get(url)
+    # print(url)
 
     # wb mode is stand for write binary mode
     # f = open("plots/" + filename + ".png", "wb")

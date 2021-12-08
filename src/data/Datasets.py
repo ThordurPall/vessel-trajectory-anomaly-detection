@@ -110,7 +110,8 @@ class AISDataset(torch.utils.data.Dataset):
                 self.data_info = pickle.load(f)
         else:
             self.data_info = data_info
-        self.data_path = self.data_info["dataFileName"]
+        # self.data_path = self.data_info["dataFileName"]
+        self.data_path = str(processed_data_dir / ("data_" + file_name + ".pkl"))
 
         # Get the requested data set (one of train/val/test)
         if indicies is None:
@@ -136,6 +137,13 @@ class AISDataset(torch.utils.data.Dataset):
             )
         else:
             self.data_dim = 4
+
+        # Get the ship types, lengths (andmax length) and define a temporal mask
+        self.ship_types, self.lengths = self.get_labels()
+        self.max_length = torch.max(self.lengths)
+        self.temporal_mask = (
+            torch.arange(self.max_length, device="cpu")[:, None] < self.lengths[None, :]
+        )  # Dimensions: max_seq_len X len(data_set)
 
         # Compute the mean and standard deviation (when appropriate) from the training set
         # or otherwise use the once computed from the training set
@@ -300,6 +308,21 @@ class AISDataset(torch.utils.data.Dataset):
             observations,
             columns=["lat", "lon", "speed", "course"],
         )
+
+    def get_labels(self):
+        shiptypes = []
+        lengths = []
+        with torch.no_grad():
+            for index in self.indicies:
+                with open(self.data_path, "rb") as file:
+                    file.seek(index)
+                    track = pickle.load(file)
+                    shiptypes.append(
+                        dataset_utils.convertShipTypeToLabel(track["shiptype"])
+                    )
+                    lengths.append(track["track_length"])
+
+        return torch.tensor(shiptypes), torch.tensor(lengths)
 
 
 class AISDiscreteRepresentation(torch.utils.data.Dataset):

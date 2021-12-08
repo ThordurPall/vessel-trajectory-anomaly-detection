@@ -1,5 +1,6 @@
 # Please note that some code in this class builds upon work done by Kristoffer Vinther Olesen (@DTU)
 import logging
+import pickle
 import math
 import time
 from pathlib import Path
@@ -10,7 +11,10 @@ import torch
 from torch.utils.data import ConcatDataset, DataLoader
 
 import src.models.VRNN as VRNN
+import src.utils.evaluation as evaluation
 import src.utils.dataset_utils as dataset_utils
+import src.utils.contrario_detection as contrario_detection
+import src.utils.construct_log_prob_map as construct_log_prob_map
 import src.utils.plotting as plotting
 from src.data.Datasets import AISDataset
 
@@ -363,6 +367,8 @@ class TrainEvaluate:
             )
         self.validation_n = len(validation_set)
         self.test_n = len(test_set)
+        self.validation_set = validation_set
+        self.test_set = test_set
 
         # Define the training, validation, and test DataLoaders
         logger.info("Define the DataLoaders")
@@ -1021,8 +1027,8 @@ class TrainEvaluate:
 
         start_time = time.time()
         for epoch in range(1, num_epochs + 1):
-            logger.info(f"Epoch {epoch} Start ----------------------------------------")
-            logger.info("Run the training loop")
+            # logger.info(f"Epoch {epoch} Start ----------------------------------------")
+            # logger.info("Run the training loop")
             train_results = self.train_loop(
                 optimizer,
                 beta_weight,
@@ -1040,7 +1046,7 @@ class TrainEvaluate:
             num_samples = train_results[5]
             num_samples_all.append(num_samples)
 
-            logger.info("Run the validation loop")
+            # logger.info("Run the validation loop")
             val_results = self.evaluate_loop(
                 self.validation_dataloader, self.validation_n, beta_weight
             )
@@ -1050,7 +1056,7 @@ class TrainEvaluate:
 
             if self.evaluate_on_fishing_vessles:
                 # Also validate on a data set consisting only of fishing vessels
-                logger.info("Run the validation loop - Fishing vessels only")
+                # logger.info("Run the validation loop - Fishing vessels only")
                 val_results = self.evaluate_loop(
                     self.fishing_validation_dataloader,
                     self.fishing_validation_n,
@@ -1062,7 +1068,7 @@ class TrainEvaluate:
 
             if self.evaluate_on_new_fishing_vessles:
                 # Also validate on a data set consisting only of fishing vessels
-                logger.info("Run the validation loop - NEW Fishing vessels only")
+                # logger.info("Run the validation loop - NEW Fishing vessels only")
                 val_results = self.evaluate_loop(
                     self.fishing_new_validation_dataloader,
                     self.fishing_new_validation_n,
@@ -1237,6 +1243,17 @@ class TrainEvaluate:
 
         # Save the final (trained) model
         torch.save(self.model.state_dict(), self.model_dir / (self.model_name + ".pth"))
+
+        # Save the total training time
+        training_time = pd.DataFrame(
+            {
+                "Training time (s)": [time.time() - start_time],
+            }
+        )
+        training_time.to_csv(
+            self.model_dir / (self.model_name + "_time.csv"),
+            index=False,
+        )
 
     def track_reconstructions(
         self,
