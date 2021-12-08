@@ -138,6 +138,7 @@ class TrainEvaluate:
         trained_model_name=None,
         GMM_components=4,
         GMM_equally_weighted=True,
+        run_number=None,
     ):
         """
         Parameters
@@ -191,6 +192,9 @@ class TrainEvaluate:
 
         GMM_equally_weighted : bool (Defaults to True)
             When True, all GMM components are equally weighted
+
+        run_number : int (Defaults to None)
+            Adds the possibility to add run number to the model name
         """
         logger = logging.getLogger(__name__)  # For logging information
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -546,6 +550,12 @@ class TrainEvaluate:
             logger.info("Loading previously trained model: " + str(model_path))
             self.model.load_state_dict(torch.load(model_path, map_location=self.device))
             self.model.to(self.device)
+
+            if run_number is not None:
+                self.model_name = self.model_name + "_RN" + str(run_number)
+                logger.info(
+                    "Model name with current run number: " + str(self.model_name)
+                )
 
     def loss_function(self, log_px, log_pz, log_qz, lengths, beta=1):
         """Computes the loss function
@@ -1145,6 +1155,11 @@ class TrainEvaluate:
                     recon=recon_tot,
                 )
         logger.info("Training End ----------------------------------------")
+        logger.info(
+            "Training loss = {}. Validation loss = {}".format(
+                loss_tot[-1], val_loss_tot[-1]
+            )
+        )
         logger.info("--- %s seconds to train ---" % (time.time() - start_time))
 
         # Save the training and validation learning curves on an epoch level
