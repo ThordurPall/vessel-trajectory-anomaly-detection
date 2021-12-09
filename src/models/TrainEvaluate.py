@@ -977,17 +977,42 @@ class TrainEvaluate:
         if scheduler_gamma is not None:
             # Using a scheduler
             use_scheduler = True
+
+            # Define a name to use to identify the current model run
             if scheduler_milestones is not None:
+                if isinstance(scheduler_gamma, list):
+                    SchedulerGamma = "".join(
+                        [str(i).replace(".", "") for i in scheduler_gamma]
+                    )
+                else:
+                    SchedulerGamma = str(scheduler_gamma).replace(".", "")
                 self.model_name = (
                     self.model_name
                     + "_S"
                     + "".join([str(i) for i in scheduler_milestones])
                     + "_"
-                    + str(scheduler_gamma).replace(".", "")
+                    + SchedulerGamma
                 )
-                scheduler = torch.optim.lr_scheduler.MultiStepLR(
-                    optimizer, milestones=scheduler_milestones, gamma=scheduler_gamma
-                )
+
+                if isinstance(scheduler_gamma, list):
+                    # Setup ChainedScheduler to use different gammas at different epochs
+                    schedulers = []
+                    for i in range(len(scheduler_gamma)):
+                        scheduler_i = torch.optim.lr_scheduler.MultiStepLR(
+                            optimizer,
+                            milestones=[scheduler_milestones[i]],
+                            gamma=scheduler_gamma[i],
+                        )
+                        schedulers.append(scheduler_i)
+                    scheduler = torch.optim.lr_scheduler.ChainedScheduler(schedulers)
+
+                else:
+                    # Always use the same gamma for all milestones
+                    scheduler = torch.optim.lr_scheduler.MultiStepLR(
+                        optimizer,
+                        milestones=scheduler_milestones,
+                        gamma=scheduler_gamma,
+                    )
             else:
                 self.model_name = (
                     self.model_name
@@ -1090,13 +1115,15 @@ class TrainEvaluate:
 
             # Check if a scheduler step should be taken as well
             if use_scheduler:
-                logger.info(
-                    "Learning rate before scheduler.step: " + str(scheduler.get_lr())
-                )
+                # logger.info(
+                #    "Learning rate before scheduler.step: " + str(scheduler.get_lr())
+                # )
                 scheduler.step()
-                logger.info(
-                    "Learning rate after scheduler.step: " + str(scheduler.get_lr())
-                )
+
+                # Display the current learning rate
+                for param_group in optimizer.param_groups:
+                    current_lr = param_group["lr"]
+                logger.info("Learning rate after scheduler.step: " + str(current_lr))
 
             # Plot three random validation trajectories
             if self.is_FishCargTank:

@@ -194,11 +194,17 @@ class SummaryModels:
         Scheduler = ""
         if scheduler_gamma is not None:
             if scheduler_milestones is not None:
+                if isinstance(scheduler_gamma, list):
+                    SchedulerGamma = "".join(
+                        [str(i).replace(".", "") for i in scheduler_gamma]
+                    )
+                else:
+                    SchedulerGamma = str(scheduler_gamma).replace(".", "")
                 Scheduler = (
                     "_S"
                     + "".join([str(i) for i in scheduler_milestones])
                     + "_"
-                    + str(scheduler_gamma).replace(".", "")
+                    + SchedulerGamma
                 )
             else:
                 Scheduler = (
