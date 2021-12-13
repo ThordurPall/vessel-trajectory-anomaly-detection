@@ -17,7 +17,8 @@ def main():  # main(input_filepath, output_filepath):
     discrete representation learning curves
     """
     # learning_curves_injected_cargo_Bornholm()
-    learning_curves_Skagen()
+    Bornholm_test_set()
+    # learning_curves_Skagen()
 
 
 def learning_curves_injected_cargo_Bornholm():
@@ -241,6 +242,50 @@ def learning_curves_injected_cargo_Bornholm():
         ylabel="Stacked bin percentages",
         file_name="Bornholm_Discrete_Stacked_Histogram_Comparison",
         bins=30,
+        xlabel="Reconstruction log probability",
+    )
+
+
+def Bornholm_test_set():
+    """Constructs figures using the Bornholm test set for the chosen model"""
+    # Set variables to use for constructing the plot
+    fig_size = (4, 4)
+    font_scale = 1.5
+    file_name = "RegionBornholm_01062019_30092019_Fish_14400_86400_600"
+
+    # Get the learning curves for the diagonal Gaussian
+    generative_dist = "Bernoulli"
+    learning_rate = 0.0003
+    intermediate_epoch = 600
+
+    summary_models = SummaryModels(
+        file_name,
+        generative_dist=generative_dist,
+        learning_rate=learning_rate,
+        intermediate_epoch=intermediate_epoch,
+        font_scale=font_scale,
+        fig_size=fig_size,
+        save_figures=True,
+        plot_figures=True,
+    )
+
+    # Get data on the test set
+    data = summary_models.run_evaluation(validation=False)["TrajectoryLevelData"]
+
+    # Setup the correct foldure structure
+    summary_models.model_fig_dir = (
+        summary_models.project_dir / "figures" / "report" / "models"
+    )
+    summary_models.learning_curve_dir = summary_models.model_fig_dir / "learning-curves"
+
+    # Do the actual plotting
+    x = "Equally weighted reconstruction log probability"
+    summary_models.hist_stacked_plot(
+        data,
+        type="Histogram",
+        x=x,
+        print_summary_stats=True,
+        file_name="Bornholm_Bernoulli_Fishing_Vessel_Test_Set_Reconstruction_Histogram",
         xlabel="Reconstruction log probability",
     )
 

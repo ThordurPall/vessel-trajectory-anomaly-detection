@@ -16,138 +16,38 @@ def main():  # main(input_filepath, output_filepath):
     """Runs code to generate report ready visualization related to
     discrete representation learning curves
     """
-    # learning_curves_injected_cargo_Bornholm()
-    learning_curves_Skagen()
+    # learning_curves_Bornholm()
+    Bornholm_test_set()
+    # learning_curves_Skagen()
 
 
-def learning_curves_injected_cargo_Bornholm():
+def learning_curves_Bornholm():
     """Constructs learning curves for cargo injected models in Bornholm"""
     # Set variables to use for constructing the plot
     level = "Step"
     ylims = [(4, 30), (0, 1), (-30, -4)]
-    fig_size = (7, 5)
+    fig_size = (4, 4)
+    font_scale = 1.5
     file_name = "RegionBornholm_01062019_30092019_Fish_14400_86400_600"
 
-    # Get the learning curves for the different models
-    setup_type = "Fishing"
+    # Get the learning curves for the diagonal Gaussian
+    setup_type = "Diagonal Gaussian"
+    generative_dist = "Diagonal"
+    learning_rate = 0.00005
+    scheduler_gamma = [0.5, 0.5, 0.7, 0.6]
+    scheduler_milestones = [500, 700, 1000, 1300]
+
     summary_models = SummaryModels(
-        file_name, save_figures=True, plot_figures=False, fig_size=fig_size
-    )
-    df_default_step = summary_models.load_curves_df(setup_type, level=level)
-
-    setup_type = "Fishing + 5%"
-    inject_cargo_proportion = 0.05
-    summary_models_005 = SummaryModels(
         file_name,
-        inject_cargo_proportion=inject_cargo_proportion,
+        generative_dist=generative_dist,
+        learning_rate=learning_rate,
+        scheduler_gamma=scheduler_gamma,
+        scheduler_milestones=scheduler_milestones,
+        font_scale=font_scale,
         save_figures=True,
         plot_figures=False,
-        fig_size=fig_size,
     )
-    df_default_005_step = summary_models_005.load_curves_df(setup_type, level=level)
-
-    setup_type = "Fishing + 10%"
-    inject_cargo_proportion = 0.1
-    summary_models_01 = SummaryModels(
-        file_name,
-        inject_cargo_proportion=inject_cargo_proportion,
-        save_figures=True,
-        plot_figures=False,
-        fig_size=fig_size,
-    )
-    df_default_01_step = summary_models_01.load_curves_df(setup_type, level=level)
-
-    setup_type = "Fishing + 20%"
-    inject_cargo_proportion = 0.2
-    summary_models_02 = SummaryModels(
-        file_name,
-        inject_cargo_proportion=inject_cargo_proportion,
-        save_figures=True,
-        plot_figures=False,
-        fig_size=fig_size,
-    )
-    df_default_02_step = summary_models_02.load_curves_df(setup_type, level=level)
-
-    setup_type = "Fishing + 50%"
-    inject_cargo_proportion = 0.5
-    summary_models_05 = SummaryModels(
-        file_name,
-        inject_cargo_proportion=inject_cargo_proportion,
-        save_figures=True,
-        plot_figures=False,
-        fig_size=fig_size,
-    )
-    df_default_05_step = summary_models_05.load_curves_df(setup_type, level=level)
-
-    setup_type = "Fishing + 100%"
-    inject_cargo_proportion = 1.0
-    summary_models_10 = SummaryModels(
-        file_name,
-        inject_cargo_proportion=inject_cargo_proportion,
-        save_figures=True,
-        plot_figures=False,
-        fig_size=fig_size,
-    )
-    df_default_10_step = summary_models_10.load_curves_df(setup_type, level=level)
-
-    setup_type = "Fishing + 200%"
-    inject_cargo_proportion = 2.0
-    summary_models_20 = SummaryModels(
-        file_name,
-        inject_cargo_proportion=inject_cargo_proportion,
-        save_figures=True,
-        plot_figures=False,
-        fig_size=fig_size,
-    )
-    df_default_20_step = summary_models_20.load_curves_df(setup_type, level=level)
-
-    setup_type = "Cargo/Tankers"
-    model_prefix = "Fishing_vessels_only_"
-    summary_models_carg_tank = SummaryModels(
-        "RegionBornholm_01062019_30092019_CargTank_14400_86400_600",
-        model_prefix=model_prefix,
-    )
-    df_carg_tank_step = summary_models_carg_tank.load_curves_df(
-        setup_type, validation_only=True, level=level
-    )
-
-    setup_type = "Fishing/Cargo/Tankers"
-    summary_models_fish_carg_tank = SummaryModels(
-        "RegionBornholm_01062019_30092019_FishCargTank_14400_86400_600",
-        model_prefix=model_prefix,
-    )
-    df_fish_carg_tank_step = summary_models_fish_carg_tank.load_curves_df(
-        setup_type, validation_only=True, level=level
-    )
-
-    # Make the learning curve comparison plot
-    df_step = pd.concat(
-        [
-            df_default_step,
-            df_default_005_step,
-            # df_default_01_step,
-            df_default_02_step,
-            df_default_05_step,
-            # df_default_10_step,
-            df_default_20_step,
-            df_carg_tank_step,
-            df_fish_carg_tank_step,
-        ]
-    )
-    df_step.reset_index(drop=True, inplace=True)
-    hue = "Setup type"
-    x = "Number of optimiser steps"
-    hue_order = [
-        "Fishing",
-        "Fishing + 5%",
-        #    "Fishing + 10%",
-        "Fishing + 20%",
-        "Fishing + 50%",
-        # "Fishing + 100%",
-        "Fishing + 200%",
-        "Cargo/Tankers",
-        "Fishing/Cargo/Tankers",
-    ]
+    df_Diagonal = summary_models.load_curves_df(setup_type, level=level)
 
     # Setup the correct foldure structure
     summary_models.model_fig_dir = (
@@ -155,241 +55,160 @@ def learning_curves_injected_cargo_Bornholm():
     )
     summary_models.learning_curve_dir = summary_models.model_fig_dir / "learning-curves"
 
+    # Do the actual plotting
+    x = "Number of optimiser steps"
+    ylims = [(4, 40), (0, 10), (-40, -4)]
     summary_models.plot_curves(
-        df_step[df_step["Data set type"] == "Training"],
-        hue,
-        hue_order,
-        title="Training data set",
+        df_Diagonal,
         x=x,
-    )
-    summary_models.plot_curves(
-        df_step[df_step["Data set type"] == "Validation"],
-        hue,
-        hue_order,
-        title="Validation data set",
-        x=x,
-    )
-    summary_models.plot_curves(
-        df_step[df_step["Data set type"] == "Training"],
-        hue,
-        hue_order,
-        title="Training data set",
-        x=x,
-        ylims=ylims,
-    )
-    summary_models.plot_curves(
-        df_step[df_step["Data set type"] == "Validation"],
-        hue,
-        hue_order,
-        # title="Validation data set",
-        x=x,
-        ylims=ylims[0],
-        file_name="Bornholm_Discrete_Fishing_Vessel_Validation_Loss_Learning_Curve_Comparison",
+        ylims=[ylims[0]],
+        file_name="Bornholm_Diagonal_Fishing_Vessel_Loss_Learning_Curves",
         plot_kl=False,
         plot_recon=False,
         fig_size=fig_size,
     )
 
     summary_models.plot_curves(
-        df_step[df_step["Data set type"] == "Validation"],
-        hue,
-        hue_order,
-        # title="Validation data set",
+        df_Diagonal,
         x=x,
-        ylims=ylims[2],
-        file_name="Bornholm_Discrete_Fishing_Vessel_Validation_Reconstruction_Learning_Curve_Comparison",
+        ylims=[ylims[2]],
+        file_name="Bornholm_Diagonal_Fishing_Vessel_Reconstruction_Learning_Curves",
         plot_loss=False,
         plot_kl=False,
         plot_recon=True,
         fig_size=fig_size,
     )
 
-    # Plot stacked reconstruction histograms for fishing/cargo/tanker vessels
+    # Plot GMM models along with the diagonal Gaussian
     plt.clf()
-    fig_size = (14, 10)
-    file_name = "RegionBornholm_01062019_30092019_FishCargTank_14400_86400_600"
+    generative_dist = "GMM"
+    setup_type = "GMM: 3 components"
+    learning_rate = 0.00003
+    GMM_equally_weighted = False
+    scheduler_gamma = [0.7, 0.5, 0.6, 0.6]
+    scheduler_milestones = [600, 800, 1000, 1300]
+    GMM_components = 3
     summary_models = SummaryModels(
         file_name,
+        generative_dist=generative_dist,
+        learning_rate=learning_rate,
+        GMM_equally_weighted=GMM_equally_weighted,
+        scheduler_gamma=scheduler_gamma,
+        scheduler_milestones=scheduler_milestones,
+        GMM_components=GMM_components,
+        font_scale=font_scale,
         save_figures=True,
-        plot_figures=True,
-        fig_size=fig_size,
+        plot_figures=False,
     )
-    # Setup the correct foldure structure
+    df_GMM_3 = summary_models.load_curves_df(setup_type)
+
+    setup_type = "GMM: 4 components"
+    GMM_components = 4
+    summary_models = SummaryModels(
+        file_name,
+        generative_dist=generative_dist,
+        learning_rate=learning_rate,
+        GMM_equally_weighted=GMM_equally_weighted,
+        scheduler_gamma=scheduler_gamma,
+        scheduler_milestones=scheduler_milestones,
+        GMM_components=GMM_components,
+        font_scale=font_scale,
+        save_figures=True,
+        plot_figures=False,
+    )
+    df_GMM_4 = summary_models.load_curves_df(setup_type, level=level)
+
+    # Add the number of optimiser steps instead of using epoch (old way)
+    df_GMM_4 = df_GMM_4[:3160]
+    df_GMM_3["Epoch"] = df_GMM_4["Number of optimiser steps"]
+    df_GMM_3.columns = df_GMM_4.columns
+
+    # Concat the different models
+    df_Diagonal = df_Diagonal[:3160]
+    df = pd.concat([df_Diagonal, df_GMM_3, df_GMM_4])
+    df.reset_index(drop=True, inplace=True)
+    hue = "Setup type"
+    hue_order = ["Diagonal Gaussian", "GMM: 3 components", "GMM: 4 components"]
+    x = "Number of optimiser steps"
+    ylims = [(4, 40), (0, 10), (-40, -4)]
+    xlims = [(0, 45000), (0, 45000), (0, 45000)]
+
+    # Setup the correct foldure structure and do the plotting
     summary_models.model_fig_dir = (
         summary_models.project_dir / "figures" / "report" / "models"
     )
     summary_models.learning_curve_dir = summary_models.model_fig_dir / "learning-curves"
 
-    x = "Equally weighted reconstruction log probability"
-    hue = "Ship type"
-    hue_order = ["Fishing", "Cargo", "Tanker"]
-    data = summary_models.run_evaluation()["TrajectoryLevelData"]
-    summary_models.hist_stacked_plot(
-        data, type="Histogram", x=x, hue=hue, hue_order=hue_order
-    )
-    summary_models.hist_stacked_plot(
-        data, type="Stacked", x=x, hue=hue, hue_order=hue_order
-    )
-    plt.clf()
-    summary_models.hist_stacked_plot(
-        data,
-        type="Stacked",
+    summary_models.plot_curves(
+        df[df["Data set type"] == "Validation"],
+        hue,
+        hue_order,
         x=x,
-        hue=hue,
-        hue_order=hue_order,
-        stat="normalized_each_bin",
-        ylabel="Stacked bin percentages",
-        file_name="Bornholm_Discrete_Stacked_Histogram_Comparison",
-        bins=30,
-        xlabel="Reconstruction log probability",
+        ylims=[ylims[0]],
+        xlims=[xlims[0]],
+        file_name="Bornholm_Diagonal_Fishing_Vessel_Loss_Learning_Curves_Comparison",
+        plot_kl=False,
+        plot_recon=False,
+        fig_size=fig_size,
+    )
+
+    summary_models.plot_curves(
+        df[df["Data set type"] == "Validation"],
+        hue,
+        hue_order,
+        x=x,
+        ylims=[ylims[2]],
+        xlims=[xlims[2]],
+        file_name="Bornholm_Diagonal_Fishing_Vessel_Reconstruction_Learning_Curves_Comparison",
+        plot_loss=False,
+        plot_kl=False,
+        plot_recon=True,
+        fig_size=fig_size,
     )
 
 
-def learning_curves_Skagen():
-    """Constructs learning curves for Skagen ROI"""
+def Bornholm_test_set():
+    """Constructs figures using the Bornholm test set for the chocen model"""
     # Set variables to use for constructing the plot
-    level = "Step"
-    ylims = [(4, 30), (0, 1), (-30, -4)]
-    fig_size = (7, 5)
-    file_name = "RegionSkagen_01062019_30092019_Fish_14400_86400_600"
+    fig_size = (4, 4)
+    font_scale = 1.5
+    file_name = "RegionBornholm_01062019_30092019_Fish_14400_86400_600"
 
-    # Get the learning curves for the different models
-    setup_type = "Fishing"
-    summary_models = SummaryModels(
-        file_name, save_figures=True, plot_figures=False, fig_size=fig_size
-    )
-    df_default_step = summary_models.load_curves_df(setup_type, level=level)
+    # Get the learning curves for the diagonal Gaussian
+    generative_dist = "Diagonal"
+    learning_rate = 0.00005
+    scheduler_gamma = [0.5, 0.5, 0.7, 0.6]
+    scheduler_milestones = [500, 700, 1000, 1300]
 
-    setup_type = "Cargo/Tankers"
-    model_prefix = "Fishing_vessels_only_"
-    summary_models_carg_tank = SummaryModels(
-        "RegionSkagen_01062019_30092019_CargTank_14400_86400_600",
-        model_prefix=model_prefix,
-    )
-    df_carg_tank_step = summary_models_carg_tank.load_curves_df(
-        setup_type, validation_only=True, level=level
-    )
-
-    setup_type = "Fishing/Cargo/Tankers"
-    summary_models_fish_carg_tank = SummaryModels(
-        "RegionSkagen_01062019_30092019_FishCargTank_14400_86400_600",
-        model_prefix=model_prefix,
-    )
-    df_fish_carg_tank_step = summary_models_fish_carg_tank.load_curves_df(
-        setup_type, validation_only=True, level=level
-    )
-
-    # Make the learning curve comparison plot
-    df_step = pd.concat(
-        [
-            df_default_step,
-            df_carg_tank_step,
-            df_fish_carg_tank_step,
-        ]
-    )
-    df_step.reset_index(drop=True, inplace=True)
-    hue = "Setup type"
-    x = "Number of optimiser steps"
-    hue_order = [
-        "Fishing",
-        "Cargo/Tankers",
-        "Fishing/Cargo/Tankers",
-    ]
-
-    # Setup the correct foldure structure
-    summary_models.model_fig_dir = (
-        summary_models.project_dir / "figures" / "report" / "models"
-    )
-    summary_models.learning_curve_dir = summary_models.model_fig_dir / "learning-curves"
-
-    summary_models.plot_curves(
-        df_step[df_step["Data set type"] == "Training"],
-        hue,
-        hue_order,
-        title="Training data set",
-        x=x,
-    )
-    summary_models.plot_curves(
-        df_step[df_step["Data set type"] == "Validation"],
-        hue,
-        hue_order,
-        title="Validation data set",
-        x=x,
-    )
-    summary_models.plot_curves(
-        df_step[df_step["Data set type"] == "Training"],
-        hue,
-        hue_order,
-        title="Training data set",
-        x=x,
-        ylims=ylims,
-    )
-    summary_models.plot_curves(
-        df_step[df_step["Data set type"] == "Validation"],
-        hue,
-        hue_order,
-        # title="Validation data set",
-        x=x,
-        xlims=[(0, 22700)],
-        ylims=ylims[0],
-        file_name="Skagen_Discrete_Fishing_Vessel_Validation_Loss_Learning_Curve_Comparison",
-        plot_kl=False,
-        plot_recon=False,
-        fig_size=fig_size,
-    )
-
-    summary_models.plot_curves(
-        df_step[df_step["Data set type"] == "Validation"],
-        hue,
-        hue_order,
-        # title="Validation data set",
-        x=x,
-        xlims=[(0, 22700)],
-        ylims=ylims[2],
-        file_name="Skagen_Discrete_Fishing_Vessel_Validation_Reconstruction_Learning_Curve_Comparison",
-        plot_loss=False,
-        plot_kl=False,
-        plot_recon=True,
-        fig_size=fig_size,
-    )
-
-    # Plot stacked reconstruction histograms for fishing/cargo/tanker vessels
-    plt.clf()
-    fig_size = (14, 10)
-    file_name = "RegionSkagen_01062019_30092019_FishCargTank_14400_86400_600"
     summary_models = SummaryModels(
         file_name,
+        generative_dist=generative_dist,
+        learning_rate=learning_rate,
+        scheduler_gamma=scheduler_gamma,
+        scheduler_milestones=scheduler_milestones,
+        font_scale=font_scale,
+        fig_size=fig_size,
         save_figures=True,
         plot_figures=True,
-        fig_size=fig_size,
     )
+
+    # Get data on the test set
+    data = summary_models.run_evaluation(validation=False)["TrajectoryLevelData"]
+
     # Setup the correct foldure structure
     summary_models.model_fig_dir = (
         summary_models.project_dir / "figures" / "report" / "models"
     )
     summary_models.learning_curve_dir = summary_models.model_fig_dir / "learning-curves"
 
+    # Do the actual plotting
     x = "Equally weighted reconstruction log probability"
-    hue = "Ship type"
-    hue_order = ["Fishing", "Cargo", "Tanker"]
-    data = summary_models.run_evaluation()["TrajectoryLevelData"]
-    summary_models.hist_stacked_plot(
-        data, type="Histogram", x=x, hue=hue, hue_order=hue_order
-    )
-    summary_models.hist_stacked_plot(
-        data, type="Stacked", x=x, hue=hue, hue_order=hue_order
-    )
-    plt.clf()
     summary_models.hist_stacked_plot(
         data,
-        type="Stacked",
+        type="Histogram",
         x=x,
-        hue=hue,
-        hue_order=hue_order,
-        stat="normalized_each_bin",
-        ylabel="Stacked bin percentages",
-        file_name="Skagen_Discrete_Stacked_Histogram_Comparison",
-        bins=30,
+        print_summary_stats=True,
+        file_name="Bornholm_Diagonal_Fishing_Vessel_Test_Set_Reconstruction_Histogram",
         xlabel="Reconstruction log probability",
     )
 
