@@ -16,8 +16,8 @@ def main():  # main(input_filepath, output_filepath):
     """Runs code to generate report ready visualization related to
     discrete representation learning curves
     """
-    # learning_curves_Bornholm()
-    Bornholm_test_set()
+    learning_curves_Bornholm()
+    # Bornholm_test_set()
     # learning_curves_Skagen()
 
 
@@ -29,6 +29,7 @@ def learning_curves_Bornholm():
     fig_size = (4, 4)
     font_scale = 1.5
     file_name = "RegionBornholm_01062019_30092019_Fish_14400_86400_600"
+    opt_steps_per_epoch = 29
 
     # Get the learning curves for the diagonal Gaussian
     setup_type = "Diagonal Gaussian"
@@ -58,6 +59,8 @@ def learning_curves_Bornholm():
     # Do the actual plotting
     x = "Number of optimiser steps"
     ylims = [(4, 40), (0, 10), (-40, -4)]
+    vertical_locations = [opt_steps_per_epoch * x for x in scheduler_milestones]
+    vertical_heights = ([5] * len(scheduler_milestones),)
     summary_models.plot_curves(
         df_Diagonal,
         x=x,
@@ -66,6 +69,8 @@ def learning_curves_Bornholm():
         plot_kl=False,
         plot_recon=False,
         fig_size=fig_size,
+        vertical_locations=vertical_locations,
+        vertical_heights=vertical_heights,
     )
 
     summary_models.plot_curves(
@@ -139,6 +144,8 @@ def learning_curves_Bornholm():
     )
     summary_models.learning_curve_dir = summary_models.model_fig_dir / "learning-curves"
 
+    vertical_locations = [opt_steps_per_epoch * x for x in scheduler_milestones]
+    vertical_heights = ([5] * len(scheduler_milestones),)
     summary_models.plot_curves(
         df[df["Data set type"] == "Validation"],
         hue,
@@ -150,6 +157,8 @@ def learning_curves_Bornholm():
         plot_kl=False,
         plot_recon=False,
         fig_size=fig_size,
+        vertical_locations=vertical_locations,
+        vertical_heights=vertical_heights,
     )
 
     summary_models.plot_curves(
