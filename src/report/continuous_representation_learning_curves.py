@@ -123,17 +123,39 @@ def learning_curves_Bornholm():
     )
     df_GMM_4 = summary_models.load_curves_df(setup_type, level=level)
 
+    setup_type = "GMM: 2 components"
+    GMM_components = 2
+    summary_models = SummaryModels(
+        file_name,
+        generative_dist=generative_dist,
+        learning_rate=learning_rate,
+        GMM_equally_weighted=GMM_equally_weighted,
+        scheduler_gamma=scheduler_gamma,
+        scheduler_milestones=scheduler_milestones,
+        GMM_components=GMM_components,
+        font_scale=font_scale,
+        save_figures=True,
+        plot_figures=False,
+    )
+    df_GMM_2 = summary_models.load_curves_df(setup_type, level=level)
+
     # Add the number of optimiser steps instead of using epoch (old way)
     df_GMM_4 = df_GMM_4[:3160]
+    df_GMM_2 = df_GMM_2[:3160]
     df_GMM_3["Epoch"] = df_GMM_4["Number of optimiser steps"]
     df_GMM_3.columns = df_GMM_4.columns
 
     # Concat the different models
     df_Diagonal = df_Diagonal[:3160]
-    df = pd.concat([df_Diagonal, df_GMM_3, df_GMM_4])
+    df = pd.concat([df_Diagonal, df_GMM_2, df_GMM_3, df_GMM_4])
     df.reset_index(drop=True, inplace=True)
     hue = "Setup type"
-    hue_order = ["Diagonal Gaussian", "GMM: 3 components", "GMM: 4 components"]
+    hue_order = [
+        "Diagonal Gaussian",
+        "GMM: 2 components",
+        "GMM: 3 components",
+        "GMM: 4 components",
+    ]
     x = "Number of optimiser steps"
     ylims = [(4, 40), (0, 10), (-40, -4)]
     xlims = [(0, 45000), (0, 45000), (0, 45000)]
