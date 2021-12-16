@@ -254,6 +254,7 @@ class ProcessData:
                     track_df["shiptype"][0],
                     track_df["track_length"][0],
                     track_df["speed"].mean(),
+                    track_df["course"].mean(),
                     track_df["timestamp"].mean(),
                     track_df["timestamp"][0],
                     track_df["timestamp"].iloc[-1],
@@ -271,6 +272,7 @@ class ProcessData:
                 "ShipType",
                 "TrackLength",
                 "MeanSpeed",
+                "MeanCourse",
                 "DateTime",
                 "DateTimeStart",
                 "DateTimeEnd",
@@ -373,3 +375,69 @@ class ProcessData:
         }.get(
             ship_type
         )  # Return None if not found in the dictionary
+
+    def process_AIS_updates(self, file_name):
+        """Process data on an AIS update level into data for exploratory analysis
+
+        Parameters
+        ----------
+        file_name : str
+            Name of the main part of the file where the results are saved
+
+        Returns
+        -------
+        str
+            Returns the file path to the processed summary results
+        """
+        logger = logging.getLogger(__name__)  # For logging information
+        data_file = self.processed_data_dir / ("data_" + file_name + ".pkl")
+        data_info_file = self.processed_data_dir / ("datasetInfo_" + file_name + ".pkl")
+
+        # Read the info file to know how to read the data file
+        logger.info(
+            "Processing data using the following info file: " + str(data_info_file)
+        )
+        with open(data_info_file, "rb") as f:
+            data_info = pickle.load(f)
+
+        logger.info(
+            "Processing the data file for analysis on an AIS update level (one index at a time)"
+        )
+        ais_points = []  # Keep track of all AIS point-based relevent information
+        for index in progressbar.progressbar(data_info["indicies"]):
+            # Get the current track - Read the data file from the current index
+            with open(data_file, "rb") as f:
+                f.seek(index)
+                track = pickle.load(f)
+                track_df = pd.DataFrame(track)
+
+                for index, row in track_df.iterrows():
+                    # Store information about this specific AIS point
+                    ais_points.append(
+                        [
+                            row["mmsi"],
+                            row["shiptype"],
+                            row["lat"],
+                            row["lon"],
+                            row["speed"],
+                            row["course"],
+                        ]
+                    )
+        df = pd.DataFrame(
+            ais_points,
+            columns=["MMSI", "Ship type", "Latitude", "Longitude", "Speed", "Course"],
+        )
+
+        # Store the data frame as a csv file
+        summary_file_name = (
+            str(self.processed_data_dir)
+            + "/"
+            + file_name
+            + "_AIS_update_based_summary.csv"
+        )
+        logger.info(
+            "Writing the data frame to a comma-separated values (csv) file: "
+            + summary_file_name
+        )
+        df.to_csv(summary_file_name, index=False)
+        return summary_file_name
