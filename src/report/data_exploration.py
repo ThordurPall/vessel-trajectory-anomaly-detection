@@ -19,8 +19,8 @@ def main():  # main(input_filepath, output_filepath):
     """Runs code to generate report ready visualization to use for
     data exploration in the report
     """
-    show_region_based_heatmaps()
-    # show_data_summary_plots_Bornholm()
+    # show_region_based_heatmaps()
+    show_data_summary_plots_Bornholm()
     # show_data_summary_plots_Skagen()
 
 
@@ -241,6 +241,20 @@ def show_data_summary_plots_Bornholm():
         hue="Ship type",
         hue_order=hue_order,
         xlim=[-1, 22],
+    )
+
+    # Plot the mean course histogram for fishing vessels
+    plt.clf()
+    df_hist = df.reset_index()
+    summary_trajectories.hist_bar_plot(
+        df_hist.loc[df_hist["Ship type"] == "Fishing"],
+        "Histogram",
+        "MeanCourse",
+        file_name="Bornholm_mean_course_histogram_fishing",
+        xlabel="Mean course (degrees)",
+        hue="Ship type",
+        hue_order=hue_order,
+        # xlim=[-1, 22],
     )
 
     # Plot trajectory length (in seconds) for each ship type (zoomed in a bit)
