@@ -243,6 +243,20 @@ def show_data_summary_plots_Bornholm():
         xlim=[-1, 22],
     )
 
+    # Plot the mean speed histogram for each ship type (zoomed in a bit)
+    plt.clf()
+    df_hist = df.reset_index()
+    hue_order = ["Fishing", "Cargo", "Tanker"]
+    summary_trajectories.hist_bar_plot(
+        df_hist,
+        "Histogram",
+        "MeanCourse",
+        file_name="Bornholm_mean_course_histogram_by_shipType",
+        xlabel="Mean course (degrees)",
+        hue="Ship type",
+        hue_order=hue_order,
+    )
+
     # Plot the mean course histogram for fishing vessels
     plt.clf()
     df_hist = df.reset_index()
@@ -252,8 +266,6 @@ def show_data_summary_plots_Bornholm():
         "MeanCourse",
         file_name="Bornholm_mean_course_histogram_fishing",
         xlabel="Mean course (degrees)",
-        hue="Ship type",
-        hue_order=hue_order,
         # xlim=[-1, 22],
     )
 
@@ -360,6 +372,32 @@ def show_data_summary_plots_Skagen():
         hue="Ship type",
         hue_order=hue_order,
         xlim=[-1, 22],
+    )
+
+    # Plot the mean speed histogram for each ship type (zoomed in a bit)
+    plt.clf()
+    df_hist = df.reset_index()
+    hue_order = ["Fishing", "Cargo", "Tanker"]
+    summary_trajectories.hist_bar_plot(
+        df_hist,
+        "Histogram",
+        "MeanCourse",
+        file_name="Skagen_mean_course_histogram_by_shipType",
+        xlabel="Mean course (degrees)",
+        hue="Ship type",
+        hue_order=hue_order,
+    )
+
+    # Plot the mean course histogram for fishing vessels
+    plt.clf()
+    df_hist = df.reset_index()
+    summary_trajectories.hist_bar_plot(
+        df_hist.loc[df_hist["Ship type"] == "Fishing"],
+        "Histogram",
+        "MeanCourse",
+        file_name="Skagen_mean_course_histogram_fishing",
+        xlabel="Mean course (degrees)",
+        # xlim=[-1, 22],
     )
 
     # Plot trajectory length (in seconds) for each ship type (zoomed in a bit)
