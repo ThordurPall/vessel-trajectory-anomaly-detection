@@ -17,9 +17,9 @@ def main():  # main(input_filepath, output_filepath):
     discrete representation learning curves
     """
     # learning_curves_Bornholm()
-    # learning_curves_Bornholm_trials()
+    learning_curves_Bornholm_trials()
     # Bornholm_test_set()
-    learning_curves_Skagen()
+    # learning_curves_Skagen()
 
 
 def learning_curves_Bornholm():
@@ -254,9 +254,6 @@ def learning_curves_Bornholm_trials():
     font_scale = 1.5
     file_name = "RegionBornholm_01062019_30092019_Fish_14400_86400_600"
 
-    # Get the learning curves for the diagonal Gaussians with different learning rates
-    generative_dist = "Isotropic_Gaussian"
-
     # Use the SummaryModels class
     generative_dist = "GMM"
     GMM_equally_weighted = False
@@ -270,7 +267,7 @@ def learning_curves_Bornholm_trials():
         plot_figures=False,
         GMM_equally_weighted=GMM_equally_weighted,
     )
-    df_0_00003 = summary_models.load_curves_df("LR: 0.00003", level=level)
+    df_0_00003 = summary_models.load_curves_df("GMM, LR: 0.00003", level=level)
 
     generative_dist = "Isotropic_Gaussian"
     learning_rate = 0.00005
@@ -282,7 +279,7 @@ def learning_curves_Bornholm_trials():
         save_figures=True,
         plot_figures=False,
     )
-    df_0_00005 = summary_models.load_curves_df("LR: 0.00005", level=level)
+    df_0_00005 = summary_models.load_curves_df("Gaussian, LR: 0.00005", level=level)
 
     learning_rate = 0.0001
     summary_models = SummaryModels(
@@ -293,7 +290,7 @@ def learning_curves_Bornholm_trials():
         save_figures=True,
         plot_figures=False,
     )
-    df_0_0001 = summary_models.load_curves_df("LR: 0.0001", level=level)
+    df_0_0001 = summary_models.load_curves_df("Gaussian LR: 0.0001", level=level)
 
     generative_dist = "GMM"
     learning_rate = 0.0003
@@ -306,7 +303,7 @@ def learning_curves_Bornholm_trials():
         plot_figures=False,
         GMM_equally_weighted=GMM_equally_weighted,
     )
-    df_0_0003 = summary_models.load_curves_df("LR: 0.0003", level=level)
+    df_0_0003 = summary_models.load_curves_df("GMM, LR: 0.0003", level=level)
 
     generative_dist = "Isotropic_Gaussian"
     learning_rate = 0.001
@@ -318,7 +315,7 @@ def learning_curves_Bornholm_trials():
         save_figures=True,
         plot_figures=False,
     )
-    df_0_001 = summary_models.load_curves_df("LR: 0.001 λ", level=level)
+    df_0_001 = summary_models.load_curves_df("Gaussian, LR: 0.001", level=level)
 
     # Setup the correct foldure structure
     summary_models.model_fig_dir = (
@@ -330,11 +327,11 @@ def learning_curves_Bornholm_trials():
     df.reset_index(drop=True, inplace=True)
     hue = "Setup type"
     hue_order = [
-        "LR: 0.00003",
-        "LR: 0.00005",
-        "LR: 0.0001",
-        "LR: 0.0003",
-        "LR: 0.001 λ",
+        "GMM, LR: 0.00003",
+        "GMM, LR: 0.0003",
+        "Gaussian, LR: 0.00005",
+        "Gaussian, LR: 0.0001",
+        "Gaussian, LR: 0.001",
     ]
 
     # Do the actual plotting
@@ -368,6 +365,30 @@ def learning_curves_Bornholm_trials():
     # Show trials with scheduler that decreases by a factor gamma after each epoch
     plt.clf()
     learning_rate = 0.001
+
+    scheduler_gamma = 0.999
+    summary_models = SummaryModels(
+        file_name,
+        generative_dist=generative_dist,
+        learning_rate=learning_rate,
+        font_scale=font_scale,
+        save_figures=True,
+        plot_figures=False,
+        scheduler_gamma=scheduler_gamma,
+    )
+    df_0_999 = summary_models.load_curves_df("LR: 0.001, γ = 0.999", level=level)
+
+    scheduler_gamma = 0.995
+    summary_models = SummaryModels(
+        file_name,
+        generative_dist=generative_dist,
+        learning_rate=learning_rate,
+        font_scale=font_scale,
+        save_figures=True,
+        plot_figures=False,
+        scheduler_gamma=scheduler_gamma,
+    )
+    df_0_995 = summary_models.load_curves_df("LR: 0.001, γ = 0.995", level=level)
 
     scheduler_gamma = 0.993
     summary_models = SummaryModels(
@@ -420,7 +441,7 @@ def learning_curves_Bornholm_trials():
         scheduler_milestones=scheduler_milestones,
     )
     df_0_5 = summary_models.load_curves_df(
-        "LR: 0.0001, γ = 0.5 ([350, 500, 800, 1200, 1500])", level=level
+        "LR: 0.0001, γ = 0.5", level=level
     )
 
     # Setup the correct foldure structure
@@ -429,24 +450,27 @@ def learning_curves_Bornholm_trials():
     )
     summary_models.learning_curve_dir = summary_models.model_fig_dir / "learning-curves"
 
-    df = pd.concat([df_0_993, df_0_99, df_0_985, df_0_5])
+    df = pd.concat([df_0_999, df_0_995, df_0_993, df_0_99, df_0_985, df_0_5])
     df.reset_index(drop=True, inplace=True)
     hue = "Setup type"
     hue_order = [
+        "LR: 0.001, γ = 0.999",
+        "LR: 0.001, γ = 0.995",
         "LR: 0.001, γ = 0.993",
         "LR: 0.001, γ = 0.99",
         "LR: 0.001, γ = 0.985",
-        # "LR: 0.00005, γ = 0.8 ([500, 1100, 1500])",
-        "LR: 0.0001, γ = 0.5 ([350, 500, 800, 1200, 1500])",
+        "LR: 0.0001, γ = 0.5",
     ]
 
     # Do the actual plotting
     x = "Number of optimiser steps"
     ylims = [(4, 40), (0, 10), (-40, -4)]
+    xlims = [(0, 14000), (0, 14000), (0, 14000)]
     summary_models.plot_curves(
         df,
         x=x,
         ylims=[ylims[0]],
+        xlims=[xlims[0]],
         file_name="Bornholm_Diagonal_Fishing_Vessel_Loss_Learning_Curves_Trials_2",
         plot_kl=False,
         plot_recon=False,
@@ -459,6 +483,7 @@ def learning_curves_Bornholm_trials():
         df,
         x=x,
         ylims=[ylims[2]],
+        xlims=[xlims[2]],
         file_name="Bornholm_Diagonal_Fishing_Vessel_Reconstruction_Learning_Curves_Trials_2",
         plot_loss=False,
         plot_kl=False,
