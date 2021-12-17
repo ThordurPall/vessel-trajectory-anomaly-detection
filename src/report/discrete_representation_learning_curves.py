@@ -16,10 +16,10 @@ def main():  # main(input_filepath, output_filepath):
     """Runs code to generate report ready visualization related to
     discrete representation learning curves
     """
-    learning_curves_Bornholm()
+    # learning_curves_Bornholm()
     # learning_curves_injected_cargo_Bornholm()
     # Bornholm_test_set()
-    # learning_curves_Skagen()
+    learning_curves_Skagen()
 
 
 def learning_curves_Bornholm():
@@ -392,6 +392,121 @@ def Bornholm_test_set():
 
 
 def learning_curves_Skagen():
+    """Constructs learning curves for Skagen ROI"""
+    # Set variables to use for constructing the plot
+    level = "Step"
+    ylims = [(5, 20), (0, 0.125), (-20, -5)]
+    fig_size = (4, 4)
+    font_scale = 1.5
+    file_name = "RegionSkagen_01062019_30092019_Fish_14400_86400_600"
+
+    # Get the learning curves for the different models
+    summary_models = SummaryModels(file_name)
+    df_default_0_005 = summary_models.load_curves_df("LR: 0.005", level=level)
+
+    summary_models = SummaryModels(file_name)
+    df_default_0_001 = summary_models.load_curves_df("LR: 0.001", level=level)
+
+    summary_models = SummaryModels(file_name, learning_rate=0.0003)
+    df_default_0_0003 = summary_models.load_curves_df("LR: 0.0003", level=level)
+
+    summary_models = SummaryModels(file_name, learning_rate=0.0005)
+    df_default_0_0005 = summary_models.load_curves_df("LR: 0.0005", level=level)
+
+    # Add cargo and tankers for comparison
+    setup_type = "Cargo/Tankers"
+    model_prefix = "Fishing_vessels_only_"
+    summary_models_carg_tank = SummaryModels(
+        "RegionSkagen_01062019_30092019_CargTank_14400_86400_600",
+        model_prefix=model_prefix,
+    )
+    df_carg_tank_step = summary_models_carg_tank.load_curves_df(
+        setup_type, validation_only=True, level=level
+    )
+
+    setup_type = "Fish/Carg/Tank"
+    summary_models_fish_carg_tank = SummaryModels(
+        "RegionSkagen_01062019_30092019_FishCargTank_14400_86400_600",
+        model_prefix=model_prefix,
+    )
+    df_fish_carg_tank_step = summary_models_fish_carg_tank.load_curves_df(
+        setup_type, validation_only=True, level=level
+    )
+
+    summary_models = SummaryModels(
+        file_name,
+        learning_rate=0.0007,
+        fig_size=fig_size,
+        font_scale=font_scale,
+        plot_figures=False,
+        save_figures=True,
+    )
+    df_default_0_0007 = summary_models.load_curves_df("LR: 0.0007", level=level)
+
+    # Condat the learning curve data frames
+    df = pd.concat(
+        [
+            df_carg_tank_step,
+            df_fish_carg_tank_step,
+            df_default_0_0003,
+            df_default_0_0005,
+            df_default_0_0007,
+            df_default_0_001,
+            df_default_0_005,
+        ]
+    )
+    df.reset_index(drop=True, inplace=True)
+
+    # Setup the correct foldure structure
+    summary_models.model_fig_dir = (
+        summary_models.project_dir / "figures" / "report" / "models"
+    )
+    summary_models.learning_curve_dir = summary_models.model_fig_dir / "learning-curves"
+
+    # Do the actual plotting
+    hue = "Setup type"
+    hue_order = [
+        # "LR: 0.0001",
+        "Cargo/Tankers",
+        "Fish/Carg/Tank",
+        "LR: 0.0003",
+        "LR: 0.0005",
+        "LR: 0.0007",
+        "LR: 0.001",
+        "LR: 0.005",
+    ]
+    x = "Number of optimiser steps"
+    summary_models.plot_curves(
+        df[df["Data set type"] == "Validation"],
+        hue,
+        hue_order,
+        # title="Validation data set",
+        x=x,
+        ylims=[ylims[0]],
+        file_name="Skagen_Discrete_Fishing_Vessel_Only_Validation_Loss_Learning_Curve_Comparison",
+        plot_kl=False,
+        plot_recon=False,
+        fig_size=fig_size,
+        remove_label_title=True,
+    )
+
+    summary_models.plot_curves(
+        df[df["Data set type"] == "Validation"],
+        hue,
+        hue_order,
+        # title="Validation data set",
+        x=x,
+        ylims=[ylims[2]],
+        file_name="Skagen_Discrete_Fishing_Vessel_Only_Validation_Reconstruction_Learning_Curve_Comparison",
+        plot_loss=False,
+        plot_kl=False,
+        plot_recon=True,
+        fig_size=fig_size,
+        remove_label_title=True,
+    )
+
+
+def learning_curvesfa_Skagen():
     """Constructs learning curves for Skagen ROI"""
     # Set variables to use for constructing the plot
     level = "Step"
