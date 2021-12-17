@@ -16,9 +16,10 @@ def main():  # main(input_filepath, output_filepath):
     """Runs code to generate report ready visualization related to
     discrete representation learning curves
     """
-    learning_curves_Bornholm()
+    # learning_curves_Bornholm()
+    # learning_curves_Bornholm_trials()
     # Bornholm_test_set()
-    # learning_curves_Skagen()
+    learning_curves_Skagen()
 
 
 def learning_curves_Bornholm():
@@ -241,6 +242,349 @@ def Bornholm_test_set():
         print_summary_stats=True,
         file_name="Bornholm_Diagonal_Fishing_Vessel_Test_Set_Reconstruction_Histogram",
         xlabel="Reconstruction log probability",
+    )
+
+
+def learning_curves_Bornholm_trials():
+    """Show different learning rate trials in Bornholm"""
+    # Set variables to use for constructing the plot
+    level = "Step"
+    ylims = [(4, 30), (0, 1), (-30, -4)]
+    fig_size = (4, 4)
+    font_scale = 1.5
+    file_name = "RegionBornholm_01062019_30092019_Fish_14400_86400_600"
+
+    # Get the learning curves for the diagonal Gaussians with different learning rates
+    generative_dist = "Isotropic_Gaussian"
+
+    # Use the SummaryModels class
+    generative_dist = "GMM"
+    GMM_equally_weighted = False
+    learning_rate = 0.00003
+    summary_models = SummaryModels(
+        file_name,
+        generative_dist=generative_dist,
+        learning_rate=learning_rate,
+        font_scale=font_scale,
+        save_figures=True,
+        plot_figures=False,
+        GMM_equally_weighted=GMM_equally_weighted,
+    )
+    df_0_00003 = summary_models.load_curves_df("LR: 0.00003", level=level)
+
+    generative_dist = "Isotropic_Gaussian"
+    learning_rate = 0.00005
+    summary_models = SummaryModels(
+        file_name,
+        generative_dist=generative_dist,
+        learning_rate=learning_rate,
+        font_scale=font_scale,
+        save_figures=True,
+        plot_figures=False,
+    )
+    df_0_00005 = summary_models.load_curves_df("LR: 0.00005", level=level)
+
+    learning_rate = 0.0001
+    summary_models = SummaryModels(
+        file_name,
+        generative_dist=generative_dist,
+        learning_rate=learning_rate,
+        font_scale=font_scale,
+        save_figures=True,
+        plot_figures=False,
+    )
+    df_0_0001 = summary_models.load_curves_df("LR: 0.0001", level=level)
+
+    generative_dist = "GMM"
+    learning_rate = 0.0003
+    summary_models = SummaryModels(
+        file_name,
+        generative_dist=generative_dist,
+        learning_rate=learning_rate,
+        font_scale=font_scale,
+        save_figures=True,
+        plot_figures=False,
+        GMM_equally_weighted=GMM_equally_weighted,
+    )
+    df_0_0003 = summary_models.load_curves_df("LR: 0.0003", level=level)
+
+    generative_dist = "Isotropic_Gaussian"
+    learning_rate = 0.001
+    summary_models = SummaryModels(
+        file_name,
+        generative_dist=generative_dist,
+        learning_rate=learning_rate,
+        font_scale=font_scale,
+        save_figures=True,
+        plot_figures=False,
+    )
+    df_0_001 = summary_models.load_curves_df("LR: 0.001 λ", level=level)
+
+    # Setup the correct foldure structure
+    summary_models.model_fig_dir = (
+        summary_models.project_dir / "figures" / "report" / "models"
+    )
+    summary_models.learning_curve_dir = summary_models.model_fig_dir / "learning-curves"
+
+    df = pd.concat([df_0_00003, df_0_00005, df_0_0001, df_0_0003, df_0_001])
+    df.reset_index(drop=True, inplace=True)
+    hue = "Setup type"
+    hue_order = [
+        "LR: 0.00003",
+        "LR: 0.00005",
+        "LR: 0.0001",
+        "LR: 0.0003",
+        "LR: 0.001 λ",
+    ]
+
+    # Do the actual plotting
+    x = "Number of optimiser steps"
+    ylims = [(4, 40), (0, 10), (-40, -4)]
+    summary_models.plot_curves(
+        df,
+        x=x,
+        ylims=[ylims[0]],
+        file_name="Bornholm_Diagonal_Fishing_Vessel_Loss_Learning_Curves_Trials",
+        plot_kl=False,
+        plot_recon=False,
+        fig_size=fig_size,
+        hue=hue,
+        hue_order=hue_order,
+    )
+
+    summary_models.plot_curves(
+        df,
+        x=x,
+        ylims=[ylims[2]],
+        file_name="Bornholm_Diagonal_Fishing_Vessel_Reconstruction_Learning_Curves_Trials",
+        plot_loss=False,
+        plot_kl=False,
+        plot_recon=True,
+        fig_size=fig_size,
+        hue=hue,
+        hue_order=hue_order,
+    )
+
+    # Show trials with scheduler that decreases by a factor gamma after each epoch
+    plt.clf()
+    learning_rate = 0.001
+
+    scheduler_gamma = 0.993
+    summary_models = SummaryModels(
+        file_name,
+        generative_dist=generative_dist,
+        learning_rate=learning_rate,
+        font_scale=font_scale,
+        save_figures=True,
+        plot_figures=False,
+        scheduler_gamma=scheduler_gamma,
+    )
+    df_0_993 = summary_models.load_curves_df("LR: 0.001, γ = 0.993", level=level)
+
+    scheduler_gamma = 0.99
+    summary_models = SummaryModels(
+        file_name,
+        generative_dist=generative_dist,
+        learning_rate=learning_rate,
+        font_scale=font_scale,
+        save_figures=True,
+        plot_figures=False,
+        scheduler_gamma=scheduler_gamma,
+    )
+    df_0_99 = summary_models.load_curves_df("LR: 0.001, γ = 0.99", level=level)
+
+    scheduler_gamma = 0.985
+    summary_models = SummaryModels(
+        file_name,
+        generative_dist=generative_dist,
+        learning_rate=learning_rate,
+        font_scale=font_scale,
+        save_figures=True,
+        plot_figures=False,
+        scheduler_gamma=scheduler_gamma,
+    )
+    df_0_985 = summary_models.load_curves_df("LR: 0.001, γ = 0.985", level=level)
+
+    generative_dist = "Diagonal"
+    learning_rate = 0.0001
+    scheduler_gamma = 0.5
+    scheduler_milestones = [350, 500, 800, 1200, 1500]
+    summary_models = SummaryModels(
+        file_name,
+        generative_dist=generative_dist,
+        learning_rate=learning_rate,
+        font_scale=font_scale,
+        save_figures=True,
+        plot_figures=False,
+        scheduler_gamma=scheduler_gamma,
+        scheduler_milestones=scheduler_milestones,
+    )
+    df_0_5 = summary_models.load_curves_df(
+        "LR: 0.0001, γ = 0.5 ([350, 500, 800, 1200, 1500])", level=level
+    )
+
+    # Setup the correct foldure structure
+    summary_models.model_fig_dir = (
+        summary_models.project_dir / "figures" / "report" / "models"
+    )
+    summary_models.learning_curve_dir = summary_models.model_fig_dir / "learning-curves"
+
+    df = pd.concat([df_0_993, df_0_99, df_0_985, df_0_5])
+    df.reset_index(drop=True, inplace=True)
+    hue = "Setup type"
+    hue_order = [
+        "LR: 0.001, γ = 0.993",
+        "LR: 0.001, γ = 0.99",
+        "LR: 0.001, γ = 0.985",
+        # "LR: 0.00005, γ = 0.8 ([500, 1100, 1500])",
+        "LR: 0.0001, γ = 0.5 ([350, 500, 800, 1200, 1500])",
+    ]
+
+    # Do the actual plotting
+    x = "Number of optimiser steps"
+    ylims = [(4, 40), (0, 10), (-40, -4)]
+    summary_models.plot_curves(
+        df,
+        x=x,
+        ylims=[ylims[0]],
+        file_name="Bornholm_Diagonal_Fishing_Vessel_Loss_Learning_Curves_Trials_2",
+        plot_kl=False,
+        plot_recon=False,
+        fig_size=fig_size,
+        hue=hue,
+        hue_order=hue_order,
+    )
+
+    summary_models.plot_curves(
+        df,
+        x=x,
+        ylims=[ylims[2]],
+        file_name="Bornholm_Diagonal_Fishing_Vessel_Reconstruction_Learning_Curves_Trials_2",
+        plot_loss=False,
+        plot_kl=False,
+        plot_recon=True,
+        fig_size=fig_size,
+        hue=hue,
+        hue_order=hue_order,
+    )
+
+
+def learning_curves_Skagen():
+    """Constructs learning curves for Skagen ROI"""
+    # Set variables to use for constructing the plot
+    level = "Step"
+    ylims = [(5, 40), (0, 10), (-40, -5)]
+    fig_size = (4, 4)
+    font_scale = 1.5
+    file_name = "RegionSkagen_01062019_30092019_Fish_14400_86400_600"
+
+    # Get the learning curves for the different models
+
+    # Get the learning curves for the diagonal Gaussians
+    generative_dist = "Diagonal"
+    summary_models = SummaryModels(
+        file_name, learning_rate=0.005, generative_dist=generative_dist
+    )
+    df_default_0_005 = summary_models.load_curves_df("LR: 0.005", level=level)
+
+    summary_models = SummaryModels(
+        file_name, learning_rate=0.003, generative_dist=generative_dist
+    )
+    df_default_0_003 = summary_models.load_curves_df("LR: 0.003", level=level)
+
+    summary_models = SummaryModels(file_name, generative_dist=generative_dist)
+    df_default_0_001 = summary_models.load_curves_df("LR: 0.001", level=level)
+
+    summary_models = SummaryModels(
+        file_name, learning_rate=0.0005, generative_dist=generative_dist
+    )
+    df_default_0_0005 = summary_models.load_curves_df("LR: 0.0005", level=level)
+
+    summary_models = SummaryModels(
+        file_name, learning_rate=0.0001, generative_dist=generative_dist
+    )
+    df_default_0_0001 = summary_models.load_curves_df("LR: 0.0001", level=level)
+
+    summary_models = SummaryModels(
+        file_name, learning_rate=0.00005, generative_dist=generative_dist
+    )
+    df_default_0_00005 = summary_models.load_curves_df("LR: 0.00005", level=level)
+
+    # summary_models = SummaryModels(file_name, learning_rate=0.00001)
+    # df_default_0_00001 = summary_models.load_curves_df("LR: 0.00001", level=level)
+
+    summary_models = SummaryModels(
+        file_name,
+        learning_rate=0.00003,
+        fig_size=fig_size,
+        font_scale=font_scale,
+        plot_figures=False,
+        save_figures=True,
+        generative_dist=generative_dist,
+    )
+    df_default_0_00003 = summary_models.load_curves_df("LR: 0.00003", level=level)
+
+    # Condat the learning curve data frames
+    df = pd.concat(
+        [
+            # df_default_0_00001
+            df_default_0_00003,
+            df_default_0_00005,
+            df_default_0_0001,
+            df_default_0_0005,
+            df_default_0_001,
+            df_default_0_003,
+            df_default_0_005,
+        ]
+    )
+    df.reset_index(drop=True, inplace=True)
+
+    # Setup the correct foldure structure
+    summary_models.model_fig_dir = (
+        summary_models.project_dir / "figures" / "report" / "models"
+    )
+    summary_models.learning_curve_dir = summary_models.model_fig_dir / "learning-curves"
+
+    # Do the actual plotting
+    hue = "Setup type"
+    hue_order = [
+        # "LR: 0.00001",
+        "LR: 0.00003",
+        "LR: 0.00005",
+        "LR: 0.0001",
+        "LR: 0.0005",
+        "LR: 0.001",
+        "LR: 0.003",
+        "LR: 0.005",
+    ]
+    x = "Number of optimiser steps"
+    summary_models.plot_curves(
+        df[df["Data set type"] == "Validation"],
+        hue,
+        hue_order,
+        # title="Validation data set",
+        x=x,
+        ylims=[ylims[0]],
+        file_name="Skagen_Continuous_Fishing_Vessel_Only_Validation_Loss_Learning_Curve_Comparison",
+        plot_kl=False,
+        plot_recon=False,
+        fig_size=fig_size,
+        remove_label_title=True,
+    )
+
+    summary_models.plot_curves(
+        df[df["Data set type"] == "Validation"],
+        hue,
+        hue_order,
+        # title="Validation data set",
+        x=x,
+        ylims=[ylims[2]],
+        file_name="Skagen_Continuous_Fishing_Vessel_Only_Validation_Reconstruction_Learning_Curve_Comparison",
+        plot_loss=False,
+        plot_kl=False,
+        plot_recon=True,
+        fig_size=fig_size,
+        remove_label_title=True,
     )
 
 

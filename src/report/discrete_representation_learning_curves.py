@@ -127,7 +127,8 @@ def learning_curves_injected_cargo_Bornholm():
     # Set variables to use for constructing the plot
     level = "Step"
     ylims = [(4, 30), (0, 1), (-30, -4)]
-    fig_size = (7, 5)
+    fig_size = (4, 4)
+    font_scale = 1.5
     file_name = "RegionBornholm_01062019_30092019_Fish_14400_86400_600"
 
     # Get the learning curves for the different models
@@ -308,13 +309,14 @@ def learning_curves_injected_cargo_Bornholm():
 
     # Plot stacked reconstruction histograms for fishing/cargo/tanker vessels
     plt.clf()
-    fig_size = (14, 10)
+    # fig_size = (14, 10)
     file_name = "RegionBornholm_01062019_30092019_FishCargTank_14400_86400_600"
     summary_models = SummaryModels(
         file_name,
-        save_figures=True,
-        plot_figures=True,
         fig_size=fig_size,
+        font_scale=font_scale,
+        plot_figures=False,
+        save_figures=True,
     )
     # Setup the correct foldure structure
     summary_models.model_fig_dir = (
@@ -402,10 +404,10 @@ def learning_curves_Skagen():
 
     # Get the learning curves for the different models
     summary_models = SummaryModels(file_name)
-    df_default_0_005 = summary_models.load_curves_df("LR: 0.005", level=level)
-
-    summary_models = SummaryModels(file_name)
     df_default_0_001 = summary_models.load_curves_df("LR: 0.001", level=level)
+
+    summary_models = SummaryModels(file_name, learning_rate=0.005)
+    df_default_0_005 = summary_models.load_curves_df("LR: 0.005", level=level)
 
     summary_models = SummaryModels(file_name, learning_rate=0.0003)
     df_default_0_0003 = summary_models.load_curves_df("LR: 0.0003", level=level)
@@ -503,6 +505,47 @@ def learning_curves_Skagen():
         plot_recon=True,
         fig_size=fig_size,
         remove_label_title=True,
+    )
+
+    # Plot stacked reconstruction histograms for fishing/cargo/tanker vessels
+    plt.clf()
+    # fig_size = (14, 10)
+    file_name = "RegionSkagen_01062019_30092019_FishCargTank_14400_86400_600"
+    summary_models = SummaryModels(
+        file_name,
+        fig_size=fig_size,
+        font_scale=font_scale,
+        plot_figures=False,
+        save_figures=True,
+    )
+    # Setup the correct foldure structure
+    summary_models.model_fig_dir = (
+        summary_models.project_dir / "figures" / "report" / "models"
+    )
+    summary_models.learning_curve_dir = summary_models.model_fig_dir / "learning-curves"
+
+    x = "Equally weighted reconstruction log probability"
+    hue = "Ship type"
+    hue_order = ["Fishing", "Cargo", "Tanker"]
+    data = summary_models.run_evaluation()["TrajectoryLevelData"]
+    summary_models.hist_stacked_plot(
+        data, type="Histogram", x=x, hue=hue, hue_order=hue_order
+    )
+    summary_models.hist_stacked_plot(
+        data, type="Stacked", x=x, hue=hue, hue_order=hue_order
+    )
+    plt.clf()
+    summary_models.hist_stacked_plot(
+        data,
+        type="Stacked",
+        x=x,
+        hue=hue,
+        hue_order=hue_order,
+        stat="normalized_each_bin",
+        ylabel="Stacked bin percentages",
+        file_name="Skagen_Discrete_Stacked_Histogram_Comparison",
+        bins=30,
+        xlabel="Reconstruction log probability",
     )
 
 
