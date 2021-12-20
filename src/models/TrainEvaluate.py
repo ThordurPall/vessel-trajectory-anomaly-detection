@@ -206,6 +206,7 @@ class TrainEvaluate:
         self.discrete = True if self.generative_dist == "Bernoulli" else False
         self.GMM_components = GMM_components
         self.GMM_equally_weighted = GMM_equally_weighted
+        self.inject_cargo_proportion = inject_cargo_proportion
 
         # Setup the correct foldure structure
         self.project_dir = Path(__file__).resolve().parents[2]
@@ -1544,7 +1545,6 @@ class TrainEvaluate:
         """
         logger = logging.getLogger(__name__)  # For logging information
         self.model.eval()
-
         logger.info("Constructing the log probability map")
         (
             map_log_prob,  # AIS level reconstruction log probabilities in their map cells
@@ -1552,7 +1552,10 @@ class TrainEvaluate:
             hs_train,
             lengths_train,
         ) = construct_log_prob_map.constuct_logprob_map(
-            self.model, self.training_dataloader
+            self.model,
+            self.training_dataloader,
+            train_set_concat=self.is_FishCargTank
+            or self.inject_cargo_proportion != 0.0,
         )
 
         logger.info("Run evaluation on the test set")
@@ -1561,13 +1564,13 @@ class TrainEvaluate:
         recon_loss, activatedBins, z_mus, hs = evaluation.evaluate_VRNN(
             self.model, self.test_dataloader
         )
-        logger.info(f"Max sequence length: {self.training_set.max_length}")
+        logger.info(f"Max sequence length: {self.test_set.max_length}")
 
         # Initialize the a contrario detection
         detection = anomalydetection(
             len(self.test_set.data_info["binedges"][0]) - 1,
             method="AContrario",
-            max_segment_length=self.training_set.max_length,
+            max_segment_length=self.test_set.max_length,
         )
 
         logger.info("Do the contrario detection to detect outliers")

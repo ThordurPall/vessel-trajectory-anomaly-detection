@@ -5,15 +5,19 @@ import torch
 import src.utils.dataset_utils as dataset_utils
 
 
-def run_VRNN(model, train_loader):
+def run_VRNN(model, train_loader, train_set_concat=False):
     # Setup variables
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     train_n = len(train_loader.dataset)
-    maxLength = train_loader.dataset.max_length
+    if train_set_concat:
+        maxLength = train_loader.dataset.datasets[0].max_length
+        binedges = train_loader.dataset.datasets[0].data_info["binedges"]
+    else:
+        maxLength = train_loader.dataset.max_length
+        binedges = train_loader.dataset.data_info["binedges"]
     latent_dim = model.latent_shape
     recurrent_dim = model.recurrent_shape
     batch_size = train_loader.batch_size
-    trainset = train_loader.dataset
 
     # Initialize variables
     zmus = np.zeros((maxLength, train_n, latent_dim))
@@ -61,9 +65,7 @@ def run_VRNN(model, train_loader):
                         "course": target[:, 3],
                     }
                 )
-                encoded_track = torch.Tensor(
-                    dataset_utils.FourHotEncode(df, trainset.data_info["binedges"])
-                )
+                encoded_track = torch.Tensor(dataset_utils.FourHotEncode(df, binedges))
 
                 # Get the activated (non zero) bins up to the current tracks length
                 # There is one bin for each variable so reshape to four
@@ -106,14 +108,19 @@ def run_VRNN(model, train_loader):
     return recon_loss, activatedBins, zmus, hs, lengths_tot.astype(int)
 
 
-def constuct_logprob_map(model, train_loader):
+def constuct_logprob_map(model, train_loader, train_set_concat=False):
     # Run the VRNN model for the training set
-    recon_loss, activatedBins, zmus, hs, lengths = run_VRNN(model, train_loader)
+    recon_loss, activatedBins, zmus, hs, lengths = run_VRNN(
+        model, train_loader, train_set_concat=train_set_concat
+    )
 
     # Split recon_loss into originating geographical bin
-    trainset = train_loader.dataset
-    lat_dim = len(trainset.data_info["binedges"][0]) - 1
-    lon_dim = len(trainset.data_info["binedges"][1]) - 1
+    if train_set_concat:
+        binedges = train_loader.dataset.datasets[0].data_info["binedges"]
+    else:
+        binedges = train_loader.dataset.data_info["binedges"]
+    lat_dim = len(binedges[0]) - 1
+    lon_dim = len(binedges[1]) - 1
     map_logprob = dict()
     for row in range(lat_dim):
         for col in range(lon_dim):
