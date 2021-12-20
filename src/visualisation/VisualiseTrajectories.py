@@ -247,6 +247,9 @@ class VisualiseTrajectories:
         fig=None,
         rect=None,
         rect2=None,
+        file_name=None,
+        font_size=None,
+        plot_axis=False,
     ):
         """Plots a single vessel trajectory on an axis ax
 
@@ -320,14 +323,17 @@ class VisualiseTrajectories:
             if color is None:
                 color = colors[0]
 
-            sns.lineplot(
-                x="Longitude",
-                y="Latitude",
-                sort=False,
-                color=color,
-                ax=ax,
-                data=df_lon_lat,
-            )
+            if plot_axis:
+                ax.plot(df_lon_lat["Longitude"], df_lon_lat["Latitude"], color=color)
+            else:
+                sns.lineplot(
+                    x="Longitude",
+                    y="Latitude",
+                    sort=False,
+                    color=color,
+                    ax=ax,
+                    data=df_lon_lat,
+                )
         else:
             logger.info(
                 "Plot a single complete vessel trajectory one connection at a time"
@@ -382,42 +388,65 @@ class VisualiseTrajectories:
         if df_speed is not None:
             # Plot speed in the top left corner
             new_ax = fig.add_axes(rect=rect)
-            sns.lineplot(
+            g = sns.lineplot(
                 x="index",
                 y="Speed",
                 color=color,
                 ax=new_ax,
                 hue="Type",
-                hue_order=["Actual", "Reconstructed"],
+                hue_order=["Actual speed", "Reconstructed"],
                 data=df_speed,
             )
             new_ax.set(
                 xlabel="Update number", ylabel="Speed (knots)"
             )  # , title="title")
+            g.get_legend().set_title(None)
+            new_ax.yaxis.set_label_position("right")
+            new_ax.yaxis.tick_right()
 
         if df_course is not None:
             # Plot speed in the top left corner
             new_ax2 = fig.add_axes(rect=rect2)
-            sns.lineplot(
+            g = sns.lineplot(
                 x="index",
                 y="Course",
                 color=color,
                 ax=new_ax2,
                 hue="Type",
-                hue_order=["Actual", "Reconstructed"],
+                hue_order=["Actual course", "Reconstructed"],
                 data=df_course,
             )
             new_ax2.set(
                 xlabel="Update number", ylabel="Course (degrees)"
             )  # , title="title")
+            g.get_legend().set_title(None)
+            new_ax2.yaxis.set_label_position("right")
+            new_ax2.yaxis.tick_right()
 
+        # Check if the font size needs to be updated
+        if font_size is not None:
+            ax.xaxis.label.set_size(font_size)
+            ax.yaxis.label.set_size(font_size)
+            ax.tick_params(axis="both", labelsize=font_size)
         # Check whether to save or plot the figure
         if self.save_figures:
-            plt.savefig(
-                self.trajectories_fig_dir
-                / (self.region + "_single_trajectory_zoom_" + str(self.zoom) + ".pdf"),
-                bbox_inches="tight",
-            )
+            if file_name is None:
+                plt.savefig(
+                    self.trajectories_fig_dir
+                    / (
+                        self.region
+                        + "_single_trajectory_zoom_"
+                        + str(self.zoom)
+                        + ".pdf"
+                    ),
+                    bbox_inches="tight",
+                )
+            else:
+                plt.savefig(
+                    self.trajectories_fig_dir / (file_name + ".pdf"),
+                    bbox_inches="tight",
+                )
+
         if self.plot_figures:
             plt.show()
         if return_ax:
@@ -436,6 +465,7 @@ class VisualiseTrajectories:
         s=100,
         progress_bar=False,
         fig=None,
+        plot_axis=False,
     ):
         """Plots multiple vessel trajectory on an axis ax
 
@@ -513,6 +543,7 @@ class VisualiseTrajectories:
                     s=s,
                     progress_bar=progress_bar,
                     fig=fig,
+                    plot_axis=plot_axis,
                 )
 
             # Plot the last trajectory and save the results
@@ -542,6 +573,7 @@ class VisualiseTrajectories:
                 s=s,
                 progress_bar=progress_bar,
                 fig=fig,
+                plot_axis=plot_axis,
             )
             return pd.DataFrame(
                 trajectories,
@@ -570,6 +602,7 @@ class VisualiseTrajectories:
                     s=s,
                     progress_bar=progress_bar,
                     fig=fig,
+                    plot_axis=plot_axis,
                 )
 
             # Plot the last trajectory and save the results
@@ -595,6 +628,7 @@ class VisualiseTrajectories:
                 s=s,
                 progress_bar=progress_bar,
                 fig=fig,
+                plot_axis=plot_axis,
             )
             return pd.DataFrame(
                 trajectories,
@@ -699,6 +733,8 @@ class VisualiseTrajectories:
         vmax=None,
         cb_label=None,
         cmin=10,
+        ax=None,
+        fig=None,
     ):
         """Creates a histogram or bar plot
 
@@ -753,10 +789,12 @@ class VisualiseTrajectories:
             Color bar label
         """
         logger = logging.getLogger(__name__)  # For logging information
-        logger.info(
-            "Calling self.read_visualise_static_map to get and visualises the map"
-        )
-        fig, _, ax = self.read_visualise_static_map()
+        if fig is None and ax is None:
+            logger.info(
+                "Calling self.read_visualise_static_map to get and visualises the map"
+            )
+            fig, _, ax = self.read_visualise_static_map()
+
         logger.info("Plotting on top of the static map")
         if type == "Scatter":
             sns.scatterplot(

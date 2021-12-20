@@ -225,6 +225,10 @@ class SummaryModels:
             if inject_cargo_proportion != 0.0
             else ""
         )
+        IntermediateEpoch = ""
+        if intermediate_epoch is not None:
+            IntermediateEpoch = "_" + str(intermediate_epoch)
+
         GenerativeDist = "_" + self.generative_dist if not self.discrete else ""
         GMMComponents = ""
         GMMEquallyWeighted = ""
@@ -252,6 +256,7 @@ class SummaryModels:
             + LearningRate
             + Scheduler
             + KLAnneal
+            + IntermediateEpoch
         )
 
         # Use seaborn style defaults and set the default figure size
@@ -353,6 +358,9 @@ class SummaryModels:
         plot_loss=True,
         plot_kl=True,
         plot_recon=True,
+        vertical_locations=None,
+        vertical_heights=None,
+        remove_label_title=False,
     ):
         """Plots the loss, KL divergence, and reconstruction log probabilities side by side
 
@@ -401,15 +409,33 @@ class SummaryModels:
 
         # Plot the requested figures
         if plot_loss:
-            sns.lineplot(x=x, y="Loss", hue=hue, hue_order=hue_order, data=df, ax=ax[i])
+            g = sns.lineplot(
+                x=x, y="Loss", hue=hue, hue_order=hue_order, data=df, ax=ax[i]
+            )
+
+            if vertical_locations is not None and vertical_heights is not None:
+                # Add vertical lines to the loss figure
+                plt.vlines(
+                    x=vertical_locations,
+                    ymin=[0] * len(vertical_locations),
+                    ymax=vertical_heights,
+                    colors="black",
+                    lw=3,
+                )
+            if remove_label_title:
+                g.get_legend().set_title(None)
+
             i += 1
         if plot_kl:
-            sns.lineplot(
+            g = sns.lineplot(
                 x=x, y="KL divergence", hue=hue, hue_order=hue_order, data=df, ax=ax[i]
             )
             i += 1
+            if remove_label_title:
+                g.get_legend().set_title(None)
+
         if plot_recon:
-            sns.lineplot(
+            g = sns.lineplot(
                 x=x,
                 y="Reconstruction log probabilities",
                 hue=hue,
@@ -418,6 +444,8 @@ class SummaryModels:
                 ax=ax[i],
             )
             i += 1
+            if remove_label_title:
+                g.get_legend().set_title(None)
 
         sns.despine()
 

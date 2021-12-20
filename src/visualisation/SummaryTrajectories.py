@@ -210,6 +210,9 @@ class SummaryTrajectories:
         ylim=None,
         df_line=None,
         col_order=None,
+        dist_x=None,
+        dist_y=None,
+        stat="count",
     ):
         """Creates a histogram or bar plot
 
@@ -256,7 +259,7 @@ class SummaryTrajectories:
         """
 
         if type == "Histogram":
-            ax = sns.histplot(x=x, hue=hue, data=data, hue_order=hue_order)
+            ax = sns.histplot(x=x, hue=hue, data=data, hue_order=hue_order, stat=stat)
 
         elif type == "Bar":
             palette = None
@@ -275,6 +278,9 @@ class SummaryTrajectories:
 
         if df_line is not None:
             ax.plot(df_line["x"], df_line["y"], linewidth=3, color="black")
+
+        if dist_x is not None and dist_y is not None:
+            ax.plot(dist_x, dist_y, linewidth=3, color="black")
 
         file_path = None
         if file_name is not None:
