@@ -16,6 +16,7 @@ import src.utils.dataset_utils as dataset_utils
 import src.utils.contrario_detection as contrario_detection
 import src.utils.construct_log_prob_map as construct_log_prob_map
 import src.utils.plotting as plotting
+from src.utils.contrario_detection import anomalydetection
 from src.data.Datasets import AISDataset
 
 
@@ -207,8 +208,8 @@ class TrainEvaluate:
         self.GMM_equally_weighted = GMM_equally_weighted
 
         # Setup the correct foldure structure
-        project_dir = Path(__file__).resolve().parents[2]
-        self.model_dir = project_dir / "models" / "saved-models"
+        self.project_dir = Path(__file__).resolve().parents[2]
+        self.model_dir = self.project_dir / "models" / "saved-models"
         self.model_intermediate_dir = self.model_dir / "intermediate"
 
         # Make sure that the model paths exists
@@ -371,6 +372,7 @@ class TrainEvaluate:
             )
         self.validation_n = len(validation_set)
         self.test_n = len(test_set)
+        self.training_set = training_set
         self.validation_set = validation_set
         self.test_set = test_set
 
@@ -1529,3 +1531,82 @@ class TrainEvaluate:
             "Reconstruction four-hot encoded": reconstruction_discrete,
             "Reconstruction log probability": [x.item() for x in log_px],
         }
+
+    def detect_outliers(self):
+        """Detect outliers in the test set
+
+        Saves the results in the project outliers folder
+        """
+        logger = logging.getLogger(__name__)  # For logging information
+        self.model.eval()
+
+        logger.info("Constructing the log probability map")
+        (
+            map_log_prob,  # AIS level reconstruction log probabilities in their map cells
+            z_mus_train,
+            hs_train,
+            lengths_train,
+        ) = construct_log_prob_map.constuct_logprob_map(
+            self.model, self.training_dataloader
+        )
+
+        logger.info("Run evaluation on the test set")
+        # Get the AIS point based reconstruction log probabilities and the
+        # cell (bins) that the vessel was located when it sent the message
+        recon_loss, activatedBins, z_mus, hs = evaluation.evaluate_VRNN(
+            self.model, self.test_dataloader
+        )
+        logger.info(f"Max sequence length: {self.training_set.max_length}")
+
+        # Initialize the a contrario detection
+        detection = anomalydetection(
+            len(self.test_set.data_info["binedges"][0]) - 1,
+            method="AContrario",
+            max_segment_length=self.training_set.max_length,
+        )
+
+        logger.info("Do the contrario detection to detect outliers")
+        outliers, abnormal_segments, abnormal_points = detection.determineOutliers(
+            recon_loss,
+            activatedBins,
+            map_log_prob,
+            self.test_set.lengths,
+        )
+
+        # Save outlier information
+        outlier_output = {
+            "test_recon_loss": recon_loss,
+            "test_activiatedBins": activatedBins,
+            "test_outliers": outliers,
+            "test_abnormal_segments": abnormal_segments,
+            "test_abnormal_points": abnormal_points,
+            "train_map_logprob": map_log_prob,
+        }
+        filename = "outliers_" + self.model_name + ".pkl"
+        with open(
+            self.project_dir / "outliers" / filename,
+            "wb",
+        ) as f:
+            pickle.dump(outlier_output, f)
+        logger.info(
+            "Outliers stored in: {}".format(self.project_dir / "outliers" / filename)
+        )
+
+        # Save also the latent representation
+        filename = "latentRep_" + self.model_name + ".pkl"
+        latent_output = {
+            "test_zmus": z_mus,
+            "train_zmus": z_mus_train[:, :100, :],
+            "test_hs": hs,
+            "train_hs": hs_train[:, :100, :],
+            "test_lengths": self.test_set.lengths,
+            "train_lengths": lengths_train[:100],
+        }
+        filename = "latentRep_" + self.model_name + ".pkl"
+        with open(self.project_dir / "outliers" / filename, "wb") as f:
+            pickle.dump(latent_output, f)
+        logger.info(
+            "Latent representations stored in: {}".format(
+                self.project_dir / "outliers" / filename
+            )
+        )
