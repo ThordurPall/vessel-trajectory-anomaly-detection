@@ -1532,10 +1532,15 @@ class TrainEvaluate:
             "Reconstruction log probability": [x.item() for x in log_px],
         }
 
-    def detect_outliers(self):
+    def detect_outliers(self, contrario_epsilon=1e-9):
         """Detect outliers in the test set
 
         Saves the results in the project outliers folder
+
+        Parameters
+        ----------
+        contrario_epsilon (Defaults to 1e-9): float
+            The epsilon to use for contrario detection
         """
         logger = logging.getLogger(__name__)  # For logging information
         self.model.eval()
@@ -1571,6 +1576,7 @@ class TrainEvaluate:
             activatedBins,
             map_log_prob,
             self.test_set.lengths,
+            contrario_epsilon=contrario_epsilon,
         )
 
         # Save outlier information
@@ -1582,7 +1588,7 @@ class TrainEvaluate:
             "test_abnormal_points": abnormal_points,
             "train_map_logprob": map_log_prob,
         }
-        filename = "outliers_" + self.model_name + ".pkl"
+        filename = f"outliers_eps{contrario_epsilon}_" + self.model_name + ".pkl"
         with open(
             self.project_dir / "outliers" / filename,
             "wb",
@@ -1593,7 +1599,7 @@ class TrainEvaluate:
         )
 
         # Save also the latent representation
-        filename = "latentRep_" + self.model_name + ".pkl"
+        filename = f"latentRep_eps{contrario_epsilon}_" + self.model_name + ".pkl"
         latent_output = {
             "test_zmus": z_mus,
             "train_zmus": z_mus_train[:, :100, :],

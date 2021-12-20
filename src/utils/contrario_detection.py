@@ -133,7 +133,9 @@ class anomalydetection:
                     v_anomalies[d_ci : d_ci + d_ns] = 1  # Mark the abnormal segment
         return v_anomalies  # return vector of abnormal segments
 
-    def determineOutliers(self, log_probs, activatedBins, Map_logprob, lengths):
+    def determineOutliers(
+        self, log_probs, activatedBins, Map_logprob, lengths, contrario_epsilon=1e-9
+    ):
         # log_probs: numpy array of shape [time (max length), dataset_size]
         # activatedBins: numpy array of shape [time (max length), dataset_size, 4]
         # Map_logprob: dict with keys of the form 'row#,col#' eg. 5,6 for the 6th row (latitude bin) and 7th column (longitude bin). Values are the log_probs in this bin
@@ -158,7 +160,11 @@ class anomalydetection:
                 # Send down the reconstruction probabilities, activated geographical cell (bins),
                 # and length for trajectory i. Also the entire training set map-based log probabilities
                 outlier, v_anomalies, p_anomalies = self.isTrackOutlier(
-                    log_probs[:, i], activatedBins[:, i, :], Map_logprob, lengths[i]
+                    log_probs[:, i],
+                    activatedBins[:, i, :],
+                    Map_logprob,
+                    lengths[i],
+                    contrario_epsilon,
                 )
             outliers.append(outlier)
             abnormal_segments.append(v_anomalies)
@@ -340,7 +346,9 @@ class anomalydetection:
         else:
             return False, Bk, v_A
 
-    def isTrackOutlier(self, log_probs, activatedBins, Map_logprob, trackLength):
+    def isTrackOutlier(
+        self, log_probs, activatedBins, Map_logprob, trackLength, contrario_epsilon=1e-9
+    ):
         # Works on a single trajectory at a time
         # log_probs: numpy array of shape [time (max length)]
         # activatedBins: numpy array of shape [time (max length), 4]
@@ -398,7 +406,7 @@ class anomalydetection:
                 v_A if end_index == 1 else v_A[seq_i : seq_i + self.max_segment_length]
             )  # Take out segment of tracks longer than max_segment_length
             v_anomalies_i = self.contrario_detection(
-                v_A
+                v_A, epsilon=contrario_epsilon
             )  # vector of abnormal segments. vector of length #updates indicating if the update is part of abnormal segments
             if end_index == 1:
                 v_anomalies[v_anomalies_i == 1] = 1
