@@ -17,9 +17,9 @@ def main():  # main(input_filepath, output_filepath):
     discrete representation learning curves
     """
     # learning_curves_Bornholm()
-    # learning_curves_injected_cargo_Bornholm()
+    learning_curves_injected_cargo_Bornholm()
     # Bornholm_test_set()
-    learning_curves_Skagen()
+    # learning_curves_Skagen()
 
 
 def learning_curves_Bornholm():
@@ -126,7 +126,7 @@ def learning_curves_injected_cargo_Bornholm():
     """Constructs learning curves for cargo injected models in Bornholm"""
     # Set variables to use for constructing the plot
     level = "Step"
-    ylims = [(4, 30), (0, 1), (-30, -4)]
+    ylims = [(5, 25), (0, 1), (-25, -5)]
     fig_size = (4, 4)
     font_scale = 1.5
     file_name = "RegionBornholm_01062019_30092019_Fish_14400_86400_600"
