@@ -12,12 +12,12 @@ def main():  # main(input_filepath, output_filepath):
     """Runs code to generate report ready visualization related to
     discrete representation learning curves
     """
-    # training_reconstruction_Bornholm()
+    validation_reconstruction_Bornholm()
     # test_reconstruction_Bornholm()
-    learning_curves_Skagen()
+    # validation_reconstruction_Skagen()
 
 
-def training_reconstruction_Bornholm():
+def validation_reconstruction_Bornholm():
     """Constructs reconstruction plots for models in Bornholm"""
     # Define the region to look into
     region = "Bornholm"
@@ -439,130 +439,6 @@ def test_reconstruction_Bornholm():
         {
             "Reconstructed trajectory": df_recon,
         }
-    )
-
-
-def learning_curves_Skagen():
-    """Constructs learning curves for Skagen ROI"""
-    # Set variables to use for constructing the plot
-    level = "Step"
-    ylims = [(5, 40), (0, 10), (-40, -5)]
-    fig_size = (4, 4)
-    font_scale = 1.5
-    file_name = "RegionSkagen_01062019_30092019_Fish_14400_86400_600"
-
-    # Get the learning curves for the different models
-
-    # Get the learning curves for the diagonal Gaussians
-    generative_dist = "Diagonal"
-    summary_models = SummaryModels(
-        file_name, learning_rate=0.005, generative_dist=generative_dist
-    )
-    df_default_0_005 = summary_models.load_curves_df("LR: 0.005", level=level)
-
-    summary_models = SummaryModels(
-        file_name, learning_rate=0.003, generative_dist=generative_dist
-    )
-    df_default_0_003 = summary_models.load_curves_df("LR: 0.003", level=level)
-
-    summary_models = SummaryModels(file_name, generative_dist=generative_dist)
-    df_default_0_001 = summary_models.load_curves_df("LR: 0.001", level=level)
-
-    summary_models = SummaryModels(
-        file_name, learning_rate=0.0005, generative_dist=generative_dist
-    )
-    df_default_0_0005 = summary_models.load_curves_df("LR: 0.0005", level=level)
-
-    summary_models = SummaryModels(
-        file_name, learning_rate=0.0001, generative_dist=generative_dist
-    )
-    df_default_0_0001 = summary_models.load_curves_df("LR: 0.0001", level=level)
-
-    summary_models = SummaryModels(
-        file_name, learning_rate=0.00005, generative_dist=generative_dist
-    )
-    df_default_0_00005 = summary_models.load_curves_df("LR: 0.00005", level=level)
-
-    summary_models = SummaryModels(
-        file_name, learning_rate=0.00001, generative_dist=generative_dist
-    )
-    df_default_0_00001 = summary_models.load_curves_df(
-        "LR: 0.00001",
-        level=level,
-    )
-
-    summary_models = SummaryModels(
-        file_name,
-        learning_rate=0.00003,
-        fig_size=fig_size,
-        font_scale=font_scale,
-        plot_figures=False,
-        save_figures=True,
-        generative_dist=generative_dist,
-    )
-    df_default_0_00003 = summary_models.load_curves_df("LR: 0.00003", level=level)
-
-    # Condat the learning curve data frames
-    df = pd.concat(
-        [
-            df_default_0_00001,
-            df_default_0_00003,
-            df_default_0_00005,
-            df_default_0_0001,
-            df_default_0_0005,
-            df_default_0_001,
-            df_default_0_003,
-            df_default_0_005,
-        ]
-    )
-    df.reset_index(drop=True, inplace=True)
-
-    # Setup the correct foldure structure
-    summary_models.model_fig_dir = (
-        summary_models.project_dir / "figures" / "report" / "models"
-    )
-    summary_models.learning_curve_dir = summary_models.model_fig_dir / "learning-curves"
-
-    # Do the actual plotting
-    hue = "Setup type"
-    hue_order = [
-        "LR: 0.00001",
-        "LR: 0.00003",
-        "LR: 0.00005",
-        "LR: 0.0001",
-        "LR: 0.0005",
-        "LR: 0.001",
-        "LR: 0.003",
-        "LR: 0.005",
-    ]
-    x = "Number of optimiser steps"
-    summary_models.plot_curves(
-        df[df["Data set type"] == "Validation"],
-        hue,
-        hue_order,
-        # title="Validation data set",
-        x=x,
-        ylims=[ylims[0]],
-        file_name="Skagen_Continuous_Fishing_Vessel_Only_Validation_Loss_Learning_Curve_Comparison",
-        plot_kl=False,
-        plot_recon=False,
-        fig_size=fig_size,
-        remove_label_title=True,
-    )
-
-    summary_models.plot_curves(
-        df[df["Data set type"] == "Validation"],
-        hue,
-        hue_order,
-        # title="Validation data set",
-        x=x,
-        ylims=[ylims[2]],
-        file_name="Skagen_Continuous_Fishing_Vessel_Only_Validation_Reconstruction_Learning_Curve_Comparison",
-        plot_loss=False,
-        plot_kl=False,
-        plot_recon=True,
-        fig_size=fig_size,
-        remove_label_title=True,
     )
 
 
