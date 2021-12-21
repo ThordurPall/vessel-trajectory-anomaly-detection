@@ -250,6 +250,7 @@ class VisualiseTrajectories:
         file_name=None,
         font_size=None,
         plot_axis=False,
+        ylim=None,
     ):
         """Plots a single vessel trajectory on an axis ax
 
@@ -423,6 +424,9 @@ class VisualiseTrajectories:
             new_ax2.yaxis.set_label_position("right")
             new_ax2.yaxis.tick_right()
 
+        if ylim is not None:
+            ax.set_ylim(ylim[0], ylim[1])
+
         # Check if the font size needs to be updated
         if font_size is not None:
             ax.xaxis.label.set_size(font_size)
@@ -466,6 +470,7 @@ class VisualiseTrajectories:
         progress_bar=False,
         fig=None,
         plot_axis=False,
+        ylim=None,
     ):
         """Plots multiple vessel trajectory on an axis ax
 
@@ -544,6 +549,7 @@ class VisualiseTrajectories:
                     progress_bar=progress_bar,
                     fig=fig,
                     plot_axis=plot_axis,
+                    ylim=ylim,
                 )
 
             # Plot the last trajectory and save the results
@@ -574,6 +580,7 @@ class VisualiseTrajectories:
                 progress_bar=progress_bar,
                 fig=fig,
                 plot_axis=plot_axis,
+                ylim=ylim,
             )
             return pd.DataFrame(
                 trajectories,
@@ -603,6 +610,7 @@ class VisualiseTrajectories:
                     progress_bar=progress_bar,
                     fig=fig,
                     plot_axis=plot_axis,
+                    ylim=ylim,
                 )
 
             # Plot the last trajectory and save the results
@@ -629,6 +637,7 @@ class VisualiseTrajectories:
                 progress_bar=progress_bar,
                 fig=fig,
                 plot_axis=plot_axis,
+                ylim=ylim,
             )
             return pd.DataFrame(
                 trajectories,
