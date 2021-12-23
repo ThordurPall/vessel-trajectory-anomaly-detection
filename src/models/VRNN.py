@@ -360,9 +360,8 @@ class VRNN(nn.Module):
                 torch.nn.functional.softplus(sigma + raw_sigma_bias), sigma_min
             )
             # sigma = torch.maximum(sigma, sigma_min)
-
             dist = MultivariateNormal(
-                loc=mu,
+                loc=mu + self.generative_bias,
                 covariance_matrix=torch.diag_embed(
                     torch.square(sigma), offset=0, dim1=-2, dim2=-1
                 ),
