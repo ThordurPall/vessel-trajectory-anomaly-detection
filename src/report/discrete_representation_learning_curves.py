@@ -2,16 +2,12 @@
 import logging
 from pathlib import Path
 
-import click
 import matplotlib.pyplot as plt
 import pandas as pd
 
 from src.visualisation.SummaryModels import SummaryModels
 
 
-@click.command()
-# @click.argument("input_filepath", type=click.Path(exists=True))
-# @click.argument("output_filepath", type=click.Path())
 def main():  # main(input_filepath, output_filepath):
     """Runs code to generate report ready visualization related to
     discrete representation learning curves

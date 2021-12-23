@@ -3,7 +3,7 @@
 
 # external requirements
 numpy
-matplotlib==3.1.2
+matplotlib
 torch==1.10.0+cu113
 scikit_learn
 pandas==1.3.2
