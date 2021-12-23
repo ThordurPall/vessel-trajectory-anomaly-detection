@@ -135,7 +135,7 @@ class TrainEvaluate:
         fishing_new_file=None,
         inject_cargo_proportion=0.0,
         intermediate_epoch=None,
-        generative_dist="Bernoulli",
+        generative_dist="Diagonal",
         trained_model_name=None,
         GMM_components=4,
         GMM_equally_weighted=True,

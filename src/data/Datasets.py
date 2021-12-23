@@ -64,7 +64,8 @@ class AISDataset(torch.utils.data.Dataset):
         validation=False,
         data_info=None,
         indicies=None,
-        discrete=True,
+        discrete=False,
+        first_order_diff = True,
     ):
         """
         Parameters
@@ -97,6 +98,7 @@ class AISDataset(torch.utils.data.Dataset):
         """
         logger = logging.getLogger(__name__)  # For logging information
         self.discrete = discrete
+        self.first_order_diff = first_order_diff
 
         # Setup the correct foldure structure
         project_dir = Path(__file__).resolve().parents[2]
@@ -136,7 +138,10 @@ class AISDataset(torch.utils.data.Dataset):
                 - 4
             )
         else:
-            self.data_dim = 4
+            if self.first_order_diff:
+                self.data_dim = 4
+            else:
+                self.data_dim = 4
 
         # Get the ship types, lengths (andmax length) and define a temporal mask
         self.ship_types, self.lengths = self.get_labels()
@@ -161,6 +166,9 @@ class AISDataset(torch.utils.data.Dataset):
         else:
             self.mean = train_mean
             self.std = train_std
+
+        print(self.mean)
+        print(self.std)
 
     def __len__(self):
         """Returns the number of dataset samples
@@ -205,6 +213,22 @@ class AISDataset(torch.utils.data.Dataset):
                 encodedTrack, dtype=torch.float
             )  # seq_len X data_dim
             inputs = targets - self.mean  # Center the inputs
+        elif self.first_order_diff:
+            #targets = torch.tensor(
+            #    np.array(df[["lat", "lon", "speed", "course"]].values.tolist()),
+            #    dtype=torch.float,
+            #)
+            #targets = torch.diff(targets, dim=0)
+            positions = torch.tensor(
+                np.array(df[["lat", "lon"]].values.tolist()),
+                dtype=torch.float,
+            )
+            kinematics = torch.tensor(
+                np.array(df[["speed", "course"]].values.tolist()),
+                dtype=torch.float,
+            )
+            targets = torch.cat([torch.diff(positions, dim=0),kinematics[1:]],dim=-1)
+            inputs = (targets - self.mean) / self.std
         else:
             # The original input dimensions should be used
             targets = torch.tensor(
@@ -220,7 +244,7 @@ class AISDataset(torch.utils.data.Dataset):
             torch.tensor(track["mmsi"]),
             np.array(track["timestamp"]),
             torch.tensor(ship_type_label),
-            torch.tensor(track["track_length"], dtype=torch.int),
+            torch.tensor(track["track_length"]-1., dtype=torch.int),
             inputs,
             targets,
         )
@@ -247,10 +271,16 @@ class AISDataset(torch.utils.data.Dataset):
                 inputs = dataset_utils.FourHotEncode(
                     df, self.data_info["binedges"]
                 )  # seq_len X data_dim
+            elif self.first_order_diff:
+                #inputs = np.array(df[["lat", "lon", "speed", "course"]].values.tolist())
+                #inputs = np.diff(positions, axis=0)
+                positions = np.array(df[["lat", "lon"]].values.tolist())
+                kinematics = np.array(df[["speed", "course"]].values.tolist())
+                inputs = np.concatenate([np.diff(positions, axis=0),kinematics[1:]],axis=-1)
             else:
                 inputs = np.array(df[["lat", "lon", "speed", "course"]].values.tolist())
             sum_all += np.sum(inputs, axis=0)  # Sum over all time points
-            total_updates += track["track_length"]
+            total_updates += (track["track_length"]-1)
         self.total_training_updates = total_updates
 
         # Mean of all the times a certain bin was activated. Used as a normalization factor (Centering in getimtem)
@@ -276,11 +306,12 @@ class AISDataset(torch.utils.data.Dataset):
             df = pd.DataFrame(track)
 
             # Compute the sum of square differences on a AIS update basis
-            for idx, row in df[["lat", "lon", "speed", "course"]].iterrows():
-                sum_diff_squared[0] += (row["lat"] - self.mean[0].item()) ** 2
-                sum_diff_squared[1] += (row["lon"] - self.mean[1].item()) ** 2
-                sum_diff_squared[2] += (row["speed"] - self.mean[2].item()) ** 2
-                sum_diff_squared[3] += (row["course"] - self.mean[3].item()) ** 2
+            #for idx, row in df[["lat", "lon", "speed", "course"]].diff()[1:].iterrows():
+            for (i, pos), (j, kin) in zip(df[["lat", "lon"]].diff()[1:].iterrows(),df[["speed", "course"]][1:].iterrows()):
+                sum_diff_squared[0] += (pos["lat"] - self.mean[0].item()) ** 2
+                sum_diff_squared[1] += (pos["lon"] - self.mean[1].item()) ** 2
+                sum_diff_squared[2] += (kin["speed"] - self.mean[2].item()) ** 2
+                sum_diff_squared[3] += (kin["course"] - self.mean[3].item()) ** 2
                 total_updates += 1
         # Return the standard deviation
         std = (sum_diff_squared / (total_updates - 1)) ** (1 / 2)
@@ -323,6 +354,23 @@ class AISDataset(torch.utils.data.Dataset):
                     lengths.append(track["track_length"])
 
         return torch.tensor(shiptypes), torch.tensor(lengths)
+        
+    def get_startpos(self,idx):
+        # Load the data file for the requested index
+        with open(self.data_path, "rb") as file:
+            # Read the track from the corresponding point in memory
+            file.seek(self.indicies[idx])
+            track = pickle.load(file)
+        df = pd.DataFrame(track)
+        
+        targets = torch.tensor(
+            np.array(df[["lat", "lon", "speed", "course"]].values.tolist()),
+            dtype=torch.float,
+        )
+        
+        return targets[0,:]
+        
+        
 
 
 class AISDiscreteRepresentation(torch.utils.data.Dataset):
