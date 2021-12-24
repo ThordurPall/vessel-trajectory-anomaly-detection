@@ -98,6 +98,8 @@ class SummaryModels:
         scheduler_gamma=None,
         scheduler_step_size=1,
         scheduler_milestones=None,
+        use_generative_bias=True,
+        first_order_diff=False,
     ):
         """
         Parameters
@@ -177,6 +179,8 @@ class SummaryModels:
         self.font_scale = font_scale
         self.GMM_components = GMM_components
         self.GMM_equally_weighted = GMM_equally_weighted
+        self.use_generative_bias = use_generative_bias
+        self.first_order_diff = first_order_diff
 
         # Setup the correct foldure structure
         self.project_dir = Path(__file__).resolve().parents[2]
@@ -229,7 +233,16 @@ class SummaryModels:
         if intermediate_epoch is not None:
             IntermediateEpoch = "_" + str(intermediate_epoch)
 
-        GenerativeDist = "_" + self.generative_dist if not self.discrete else ""
+        if self.discrete:
+            GenerativeDist = ""
+        else:
+            GenerativeDist = "_" + self.generative_dist
+            UseGenerativeBias = ""
+            if self.use_generative_bias:
+                UseGenerativeBias = "_GBT"
+            FirstOrderDiff = ""
+            if first_order_diff:
+                FirstOrderDiff = "_FODT"
         GMMComponents = ""
         GMMEquallyWeighted = ""
         if self.generative_dist == "GMM":
@@ -238,7 +251,7 @@ class SummaryModels:
                 GMMEquallyWeighted = "EW"
             else:
                 GMMEquallyWeighted = "NEW"
-
+        
         self.model_name = (
             model_prefix
             + model
@@ -253,10 +266,12 @@ class SummaryModels:
             + GenerativeDist
             + GMMComponents
             + GMMEquallyWeighted
+            + UseGenerativeBias
             + LearningRate
             + Scheduler
             + KLAnneal
             + IntermediateEpoch
+            + FirstOrderDiff
         )
 
         # Use seaborn style defaults and set the default figure size
@@ -563,6 +578,8 @@ class SummaryModels:
             trained_model_name=self.model_name,
             GMM_components=self.GMM_components,
             GMM_equally_weighted=self.GMM_equally_weighted,
+            use_generative_bias=self.use_generative_bias, 
+            first_order_diff = self.first_order_diff,
         )
 
         # Check which data set to actually use when running the evaluation loop

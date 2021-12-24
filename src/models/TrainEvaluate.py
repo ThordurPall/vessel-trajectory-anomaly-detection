@@ -135,11 +135,13 @@ class TrainEvaluate:
         fishing_new_file=None,
         inject_cargo_proportion=0.0,
         intermediate_epoch=None,
-        generative_dist="Diagonal",
+        generative_dist="Bernoulli",
         trained_model_name=None,
         GMM_components=4,
         GMM_equally_weighted=True,
         run_number=None,
+        use_generative_bias=True,
+        first_order_diff=False,
     ):
         """
         Parameters
@@ -207,6 +209,8 @@ class TrainEvaluate:
         self.GMM_components = GMM_components
         self.GMM_equally_weighted = GMM_equally_weighted
         self.inject_cargo_proportion = inject_cargo_proportion
+        self.use_generative_bias = use_generative_bias
+        self.first_order_diff = first_order_diff
 
         # Setup the correct foldure structure
         self.project_dir = Path(__file__).resolve().parents[2]
@@ -511,7 +515,16 @@ class TrainEvaluate:
             if inject_cargo_proportion != 0.0
             else ""
         )
-        GenerativeDist = "_" + self.generative_dist if not self.discrete else ""
+        if self.discrete:
+            GenerativeDist = ""
+        else:
+            GenerativeDist = "_" + self.generative_dist
+            UseGenerativeBias = ""
+            if self.use_generative_bias:
+                UseGenerativeBias = "_GBT"
+            FirstOrderDiff = ""
+            if first_order_diff:
+                FirstOrderDiff = "_FODT"
 
         GMMComponents = ""
         GMMEquallyWeighted = ""
@@ -534,6 +547,8 @@ class TrainEvaluate:
             + GenerativeDist
             + GMMComponents
             + GMMEquallyWeighted
+            + UseGenerativeBias
+            + FirstOrderDiff
         )
         logger.info("Model name: " + self.model_name)
 
