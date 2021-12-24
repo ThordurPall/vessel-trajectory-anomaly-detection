@@ -319,7 +319,7 @@ class VRNN(nn.Module):
         # Return a distribution q(z_t|x_t) = N(z_t|mu_{z,t}, diag(sigma^2_{z,t}))
         return ReparameterizedDiagonalGaussian(mu, sigma)
 
-    def generative(self, z_features, h, sigma_min=0.000001, raw_sigma_bias=0.5):
+    def generative(self, z_features, h, sigma_min=0.000001, raw_sigma_bias=0.5, use_generative_bias=True):
         """Returns the generating distribution p(x_t|z_t)
 
         Parameters
@@ -343,7 +343,10 @@ class VRNN(nn.Module):
 
         if self.generative_dist == "Bernoulli":
             # The log odds is non-linear in z_features and h
-            x_log_odds = x_decoder + self.generative_bias
+            if use_generative_bias:
+                x_log_odds = x_decoder + self.generative_bias
+            else:
+                x_log_odds = x_decoder
 
             # Create a Bernoulli distribution parameterized by the log-odds of sampling one
             dist = Bernoulli(logits=x_log_odds)
@@ -359,9 +362,11 @@ class VRNN(nn.Module):
             sigma = torch.maximum(
                 torch.nn.functional.softplus(sigma + raw_sigma_bias), sigma_min
             )
-            # sigma = torch.maximum(sigma, sigma_min)
+            location = mu
+            if use_generative_bias:
+                location = mu + self.generative_bias
             dist = MultivariateNormal(
-                loc=mu + self.generative_bias,
+                loc=location,
                 covariance_matrix=torch.diag_embed(
                     torch.square(sigma), offset=0, dim1=-2, dim2=-1
                 ),
@@ -419,63 +424,8 @@ class VRNN(nn.Module):
             comp = D.Independent(D.Normal(mu, sigma), 1)
             gmm = MixtureSameFamily(mix, comp)
             dist = gmm
-
-        elif self.generative_dist == "Gaussian":  # TODO
-            # Return the means and variance-covariance matrix from the decoder
-            mu = x_decoder[:, 0 : self.input_shape]
-            sigmas = x_decoder[:, self.input_shape :]
-
-            # construct the variance-covariance matrix
-            Sigma = torch.zeros(
-                x_decoder.shape[0],
-                self.input_shape,
-                self.input_shape,
-                device=self.device,
-            )
-            index = 0
-            for i in range(self.input_shape):
-                for j in range(self.input_shape):
-                    if i == j:
-                        # Make sure that the variance (on the matrix diagonal) is non-negative
-                        sigma_min_tmp = torch.full_like(sigmas[:, index], sigma_min)
-                        Sigma[:, i, j] = torch.maximum(
-                            torch.nn.functional.softplus(
-                                sigmas[:, index] + raw_sigma_bias
-                            ),
-                            sigma_min_tmp,
-                        )
-                        # Sigma[:, i, j] = (Sigma[:, i, j] * 10 ** 6).round() / (10 ** 6)
-
-                        # Sigma[:, i, j] = torch.maximum(
-                        #    sigmas[:, index] + raw_sigma_bias,
-                        #    sigma_min_tmp,
-                        # )
-                        # Sigma[:, i, j] += 1  # 1 # Add one on the diagonal
-                        index += 1
-                    else:
-                        if sum(Sigma[:, i, j]).item() == 0:
-                            # Set the covariance values
-                            Sigma[:, i, j] = sigmas[:, index]  # + raw_sigma_bias
-                            Sigma[:, j, i] = sigmas[:, index]  # + raw_sigma_bias
-
-                            # Sigma[:, i, j] = (Sigma[:, i, j] * 10 ** 6).round() / (
-                            #    10 ** 6
-                            # )
-                            # Sigma[:, j, i] = (Sigma[:, i, j] * 10 ** 6).round() / (
-                            #    10 ** 6
-                            # )
-                            index += 1
-            # Define the multivariate Gaussian
-            # for i in range(x_decoder.shape[0]):
-            #    Sigma[i, :, :] = torch.mm(
-            #        Sigma[i, :, :], Sigma[i, :, :].t()
-            #    )  # make symmetric positive-definite
-            # https://pytorch.org/docs/stable/generated/torch.cholesky.html
-            # https://math.stackexchange.com/questions/357980/how-to-generate-random-symmetric-positive-definite-matrices-using-matlab
-            dist = MultivariateNormal(loc=mu, covariance_matrix=Sigma)
-
         else:
-            print("Currently only implmented for 'Bernoulli', 'Diagonal', 'Gaussian'")
+            print("Currently only implmented for 'Bernoulli', 'Diagonal', and 'GMM'")
 
         # Return a distribution p(x_t|z_t)
         return dist
@@ -492,6 +442,7 @@ class VRNN(nn.Module):
         obs_mus=None,
         obs_Sigmas=None,
         obs_probs=None,
+        use_generative_bias=True,
     ):
         """Computes the log probabilities that can be used in the VRNN loss function
 
@@ -591,7 +542,7 @@ class VRNN(nn.Module):
 
             # Create the observation model (generating distribution) p(x_t|z_t)
             px_t = self.generative(
-                z_features, output_t
+                z_features, output_t, use_generative_bias=use_generative_bias
             )  # output_t at this point is still output_{t-1}
 
             # Update the recurrence - Update hidden state output_{t-1} to output_t
