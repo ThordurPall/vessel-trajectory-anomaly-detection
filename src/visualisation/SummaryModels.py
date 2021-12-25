@@ -458,6 +458,7 @@ class SummaryModels:
                 data=df,
                 ax=ax[i],
             )
+            g.set_ylabel("Reconstruction log likelihood")
             i += 1
             if remove_label_title:
                 g.get_legend().set_title(None)
@@ -528,6 +529,8 @@ class SummaryModels:
             hue_order=hue_order,
             data=df,
         )
+        ax.set_ylabel("Reconstruction log likelihood")
+        
         sns.despine()
         if title is not None:
             ax.set_title(title)
@@ -579,7 +582,7 @@ class SummaryModels:
             GMM_components=self.GMM_components,
             GMM_equally_weighted=self.GMM_equally_weighted,
             use_generative_bias=self.use_generative_bias, 
-            first_order_diff = self.first_order_diff,
+            first_order_diff=self.first_order_diff,
         )
 
         # Check which data set to actually use when running the evaluation loop

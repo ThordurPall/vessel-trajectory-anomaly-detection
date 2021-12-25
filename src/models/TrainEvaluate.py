@@ -515,6 +515,9 @@ class TrainEvaluate:
             if inject_cargo_proportion != 0.0
             else ""
         )
+
+        UseGenerativeBias = ""
+        FirstOrderDiff = ""
         if self.discrete:
             GenerativeDist = ""
         else:
@@ -522,7 +525,7 @@ class TrainEvaluate:
             UseGenerativeBias = ""
             if self.use_generative_bias:
                 UseGenerativeBias = "_GBT"
-            FirstOrderDiff = ""
+            
             if first_order_diff:
                 FirstOrderDiff = "_FODT"
 
@@ -711,7 +714,7 @@ class TrainEvaluate:
                 _,
                 _,
                 _,
-            ) = self.model(inputs, targets)
+            ) = self.model(inputs, targets, use_generative_bias=self.use_generative_bias)
 
             # Compute the loss (how far is the output from being correct)
             loss, log_px, kl, _ = self.loss_function(
@@ -791,7 +794,7 @@ class TrainEvaluate:
             lengths = lengths.to(self.device)
 
             # Process input through the network - Pass the input data to the model (executes the model’s forward)
-            log_px, log_pz, log_qz, _, _, _, _, _ = self.model(inputs, targets)
+            log_px, log_pz, log_qz, _, _, _, _, _ = self.model(inputs, targets, use_generative_bias=self.use_generative_bias)
 
             # Compute the loss (how far is the output from being correct)
             loss, log_px, kl, _ = self.loss_function(
@@ -1363,7 +1366,7 @@ class TrainEvaluate:
 
             # Use the pretrained model
             log_px, _, _, logits, _, _, _, _ = self.model(
-                input.unsqueeze(0), target_device.unsqueeze(0), logits=logits
+                input.unsqueeze(0), target_device.unsqueeze(0), logits=logits, use_generative_bias=self.use_generative_bias
             )
             logits = logits.cpu()
 
@@ -1415,6 +1418,7 @@ class TrainEvaluate:
                 target_device.unsqueeze(0),
                 obs_mus=mus,
                 obs_Sigmas=Sigmas,
+                use_generative_bias=self.use_generative_bias
             )
             mus = mus.cpu()
             Sigmas = Sigmas.cpu()
@@ -1498,6 +1502,7 @@ class TrainEvaluate:
                 obs_mus=mus,
                 obs_Sigmas=sigmas,
                 obs_probs=mix_probs,
+                use_generative_bias=self.use_generative_bias
             )
             mus = mus.cpu()
             sigmas = sigmas.cpu()

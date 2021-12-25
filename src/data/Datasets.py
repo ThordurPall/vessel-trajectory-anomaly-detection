@@ -167,9 +167,6 @@ class AISDataset(torch.utils.data.Dataset):
             self.mean = train_mean
             self.std = train_std
 
-        print(self.mean)
-        print(self.std)
-
     def __len__(self):
         """Returns the number of dataset samples
 
