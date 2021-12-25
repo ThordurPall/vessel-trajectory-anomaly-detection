@@ -232,15 +232,15 @@ class SummaryModels:
         IntermediateEpoch = ""
         if intermediate_epoch is not None:
             IntermediateEpoch = "_" + str(intermediate_epoch)
-
+        
+        UseGenerativeBias = ""
+        FirstOrderDiff = ""
         if self.discrete:
             GenerativeDist = ""
         else:
             GenerativeDist = "_" + self.generative_dist
-            UseGenerativeBias = ""
             if self.use_generative_bias:
                 UseGenerativeBias = "_GBT"
-            FirstOrderDiff = ""
             if first_order_diff:
                 FirstOrderDiff = "_FODT"
         GMMComponents = ""
