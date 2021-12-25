@@ -98,7 +98,7 @@ class SummaryModels:
         scheduler_gamma=None,
         scheduler_step_size=1,
         scheduler_milestones=None,
-        use_generative_bias=True,
+        use_generative_bias=False,
         first_order_diff=False,
     ):
         """
