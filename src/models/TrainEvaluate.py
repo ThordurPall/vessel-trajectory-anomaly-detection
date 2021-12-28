@@ -243,9 +243,9 @@ class TrainEvaluate:
             file_name_carg_tank = file_name.replace("FishCargTank", "CargTank")
 
             # Load the fishing vessel only and cargo/tanker only training sets
-            training_set_fish = AISDataset(file_name_fish, discrete=self.discrete)
+            training_set_fish = AISDataset(file_name_fish, discrete=self.discrete, first_order_diff=self.first_order_diff)
             training_set_carg_tank = AISDataset(
-                file_name_carg_tank, discrete=self.discrete
+                file_name_carg_tank, discrete=self.discrete, first_order_diff=self.first_order_diff
             )
 
             # Combine the two data sets and update the mean values to the overall training mean value
@@ -271,7 +271,7 @@ class TrainEvaluate:
             training_set_carg_tank.mean = self.train_mean
             self.input_shape = training_set_carg_tank.data_dim
         else:
-            training_set = AISDataset(file_name, discrete=self.discrete)
+            training_set = AISDataset(file_name, discrete=self.discrete, first_order_diff=self.first_order_diff)
             self.train_mean = training_set.mean
             self.train_std = None if self.discrete else training_set.std
             self.input_shape = training_set.data_dim
@@ -280,7 +280,7 @@ class TrainEvaluate:
             # Inject additional cargo/tanker trajectories into the training set
             file_name_carg_tank = file_name.replace("Fish", "CargTank")
             training_set_carg_tank = AISDataset(
-                file_name_carg_tank, discrete=self.discrete
+                file_name_carg_tank, discrete=self.discrete, first_order_diff=self.first_order_diff
             )
             n = int(len(training_set) * inject_cargo_proportion)
             indices = range(0, n)
@@ -332,6 +332,7 @@ class TrainEvaluate:
                 train_std=self.train_std,
                 validation=True,
                 discrete=self.discrete,
+                first_order_diff=self.first_order_diff,
             )
             validation_set_carg_tank = AISDataset(
                 file_name_carg_tank,
@@ -339,6 +340,7 @@ class TrainEvaluate:
                 train_std=self.train_std,
                 validation=True,
                 discrete=self.discrete,
+                first_order_diff=self.first_order_diff,
             )
             test_set_fish = AISDataset(
                 file_name_fish,
@@ -346,6 +348,7 @@ class TrainEvaluate:
                 train_std=self.train_std,
                 validation=False,
                 discrete=self.discrete,
+                first_order_diff=self.first_order_diff,
             )
             test_set_carg_tank = AISDataset(
                 file_name_carg_tank,
@@ -353,6 +356,7 @@ class TrainEvaluate:
                 train_std=self.train_std,
                 validation=False,
                 discrete=self.discrete,
+                first_order_diff=self.first_order_diff,
             )
 
             # Combine the two validation/test data sets
@@ -367,6 +371,7 @@ class TrainEvaluate:
                 train_std=self.train_std,
                 validation=True,
                 discrete=self.discrete,
+                first_order_diff=self.first_order_diff,
             )
             test_set = AISDataset(
                 file_name,
@@ -374,6 +379,7 @@ class TrainEvaluate:
                 train_std=self.train_std,
                 validation=False,
                 discrete=self.discrete,
+                first_order_diff=self.first_order_diff,
             )
         self.validation_n = len(validation_set)
         self.test_n = len(test_set)
@@ -421,6 +427,7 @@ class TrainEvaluate:
                 train_std=self.train_std,
                 validation=True,
                 discrete=self.discrete,
+                first_order_diff=self.first_order_diff,
             )
             self.fishing_validation_n = len(fishing_validation_set)
             fishing_test_set = AISDataset(
@@ -429,6 +436,7 @@ class TrainEvaluate:
                 train_std=self.train_std,
                 validation=False,
                 discrete=self.discrete,
+                first_order_diff=self.first_order_diff,
             )
             self.fishing_test_n = len(fishing_test_set)
 
@@ -464,6 +472,7 @@ class TrainEvaluate:
                 train_std=self.train_std,
                 validation=True,
                 discrete=self.discrete,
+                first_order_diff=self.first_order_diff,
             )
             self.fishing_new_validation_n = len(fishing_new_validation_set)
             fishing_new_test_set = AISDataset(
@@ -472,6 +481,7 @@ class TrainEvaluate:
                 train_std=self.train_std,
                 validation=False,
                 discrete=self.discrete,
+                first_order_diff=self.first_order_diff,
             )
             self.fishing_new_test_n = len(fishing_new_test_set)
 
