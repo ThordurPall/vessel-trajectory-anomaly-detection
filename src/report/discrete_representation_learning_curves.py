@@ -13,9 +13,9 @@ def main():  # main(input_filepath, output_filepath):
     discrete representation learning curves
     """
     # learning_curves_Bornholm()
-    # learning_curves_injected_cargo_Bornholm()
+    learning_curves_injected_cargo_Bornholm()
     # Bornholm_test_set()
-    learning_curves_Skagen()
+    # learning_curves_Skagen()
 
 
 def learning_curves_Bornholm():
@@ -130,7 +130,7 @@ def learning_curves_injected_cargo_Bornholm():
     # Get the learning curves for the different models
     setup_type = "Fishing"
     summary_models = SummaryModels(
-        file_name, save_figures=True, plot_figures=False, fig_size=fig_size
+        file_name, save_figures=True, plot_figures=False, fig_size=fig_size, font_scale=font_scale
     )
     df_default_step = summary_models.load_curves_df(setup_type, level=level)
 
@@ -142,6 +142,7 @@ def learning_curves_injected_cargo_Bornholm():
         save_figures=True,
         plot_figures=False,
         fig_size=fig_size,
+        font_scale=font_scale,
     )
     df_default_005_step = summary_models_005.load_curves_df(setup_type, level=level)
 
@@ -153,6 +154,7 @@ def learning_curves_injected_cargo_Bornholm():
         save_figures=True,
         plot_figures=False,
         fig_size=fig_size,
+        font_scale=font_scale,
     )
     df_default_01_step = summary_models_01.load_curves_df(setup_type, level=level)
 
@@ -164,6 +166,7 @@ def learning_curves_injected_cargo_Bornholm():
         save_figures=True,
         plot_figures=False,
         fig_size=fig_size,
+        font_scale=font_scale,
     )
     df_default_02_step = summary_models_02.load_curves_df(setup_type, level=level)
 
@@ -175,6 +178,7 @@ def learning_curves_injected_cargo_Bornholm():
         save_figures=True,
         plot_figures=False,
         fig_size=fig_size,
+        font_scale=font_scale,
     )
     df_default_05_step = summary_models_05.load_curves_df(setup_type, level=level)
 
@@ -186,6 +190,7 @@ def learning_curves_injected_cargo_Bornholm():
         save_figures=True,
         plot_figures=False,
         fig_size=fig_size,
+        font_scale=font_scale,
     )
     df_default_10_step = summary_models_10.load_curves_df(setup_type, level=level)
 
@@ -197,6 +202,7 @@ def learning_curves_injected_cargo_Bornholm():
         save_figures=True,
         plot_figures=False,
         fig_size=fig_size,
+        font_scale=font_scale,
     )
     df_default_20_step = summary_models_20.load_curves_df(setup_type, level=level)
 
@@ -205,6 +211,8 @@ def learning_curves_injected_cargo_Bornholm():
     summary_models_carg_tank = SummaryModels(
         "RegionBornholm_01062019_30092019_CargTank_14400_86400_600",
         model_prefix=model_prefix,
+        fig_size=fig_size,
+        font_scale=font_scale,
     )
     df_carg_tank_step = summary_models_carg_tank.load_curves_df(
         setup_type, validation_only=True, level=level
@@ -214,6 +222,8 @@ def learning_curves_injected_cargo_Bornholm():
     summary_models_fish_carg_tank = SummaryModels(
         "RegionBornholm_01062019_30092019_FishCargTank_14400_86400_600",
         model_prefix=model_prefix,
+        fig_size=fig_size,
+        font_scale=font_scale,
     )
     df_fish_carg_tank_step = summary_models_fish_carg_tank.load_curves_df(
         setup_type, validation_only=True, level=level
@@ -287,6 +297,7 @@ def learning_curves_injected_cargo_Bornholm():
         plot_kl=False,
         plot_recon=False,
         fig_size=fig_size,
+        remove_label_title=True,
     )
 
     summary_models.plot_curves(
@@ -301,6 +312,7 @@ def learning_curves_injected_cargo_Bornholm():
         plot_kl=False,
         plot_recon=True,
         fig_size=fig_size,
+        remove_label_title=True,
     )
 
     # Plot stacked reconstruction histograms for fishing/cargo/tanker vessels
@@ -341,7 +353,7 @@ def learning_curves_injected_cargo_Bornholm():
         ylabel="Stacked bin percentages",
         file_name="Bornholm_Discrete_Stacked_Histogram_Comparison",
         bins=30,
-        xlabel="Reconstruction log probability",
+        xlabel="Reconstruction log likelihood",
     )
 
 
@@ -354,8 +366,8 @@ def Bornholm_test_set():
 
     # Get the learning curves for the diagonal Gaussian
     generative_dist = "Bernoulli"
-    learning_rate = 0.0003
-    intermediate_epoch = 600
+    learning_rate = 0.001
+    intermediate_epoch = 250
 
     summary_models = SummaryModels(
         file_name,
@@ -385,7 +397,7 @@ def Bornholm_test_set():
         x=x,
         print_summary_stats=True,
         file_name="Bornholm_Bernoulli_Fishing_Vessel_Test_Set_Reconstruction_Histogram",
-        xlabel="Reconstruction log probability",
+        xlabel="Reconstruction log likelihood",
     )
 
 
@@ -541,7 +553,7 @@ def learning_curves_Skagen():
         ylabel="Stacked bin percentages",
         file_name="Skagen_Discrete_Stacked_Histogram_Comparison",
         bins=30,
-        xlabel="Reconstruction log probability",
+        xlabel="Reconstruction log likelihood",
     )
 
 

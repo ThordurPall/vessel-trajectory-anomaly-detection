@@ -3,7 +3,6 @@ import logging
 import pickle
 from pathlib import Path
 
-import click
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -11,16 +10,12 @@ import pandas as pd
 from src.visualisation.SummaryTrajectories import SummaryTrajectories
 from src.visualisation.VisualiseTrajectories import VisualiseTrajectories
 
-
-@click.command()
-# @click.argument("input_filepath", type=click.Path(exists=True))
-# @click.argument("output_filepath", type=click.Path())
 def main():  # main(input_filepath, output_filepath):
     """Runs code to generate report ready visualization to use for
     data exploration in the report
     """
-    # show_region_based_heatmaps()
-    show_data_summary_plots_Bornholm()
+    show_region_based_heatmaps()
+    # show_data_summary_plots_Bornholm()
     # show_data_summary_plots_Skagen()
 
 

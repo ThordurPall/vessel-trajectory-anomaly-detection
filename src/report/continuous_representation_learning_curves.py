@@ -2,24 +2,19 @@
 import logging
 from pathlib import Path
 
-import click
 import matplotlib.pyplot as plt
 import pandas as pd
 
 from src.visualisation.SummaryModels import SummaryModels
 
-
-@click.command()
-# @click.argument("input_filepath", type=click.Path(exists=True))
-# @click.argument("output_filepath", type=click.Path())
 def main():  # main(input_filepath, output_filepath):
     """Runs code to generate report ready visualization related to
     discrete representation learning curves
     """
     # learning_curves_Bornholm()
-    learning_curves_Bornholm_trials()
+    # learning_curves_Bornholm_trials()
     # Bornholm_test_set()
-    # learning_curves_Skagen()
+    learning_curves_Skagen()
 
 
 def learning_curves_Bornholm():
@@ -200,7 +195,7 @@ def learning_curves_Bornholm():
 
 
 def Bornholm_test_set():
-    """Constructs figures using the Bornholm test set for the chocen model"""
+    """Constructs figures using the Bornholm test set for the chosen model"""
     # Set variables to use for constructing the plot
     fig_size = (4, 4)
     font_scale = 1.5
@@ -241,7 +236,7 @@ def Bornholm_test_set():
         x=x,
         print_summary_stats=True,
         file_name="Bornholm_Diagonal_Fishing_Vessel_Test_Set_Reconstruction_Histogram",
-        xlabel="Reconstruction log probability",
+        xlabel="Reconstruction log likelihood",
     )
 
 
