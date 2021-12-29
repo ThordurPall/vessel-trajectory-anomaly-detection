@@ -267,11 +267,11 @@ class SummaryModels:
             + GMMComponents
             + GMMEquallyWeighted
             + UseGenerativeBias
+            + FirstOrderDiff
             + LearningRate
             + Scheduler
             + KLAnneal
             + IntermediateEpoch
-            + FirstOrderDiff
         )
 
         # Use seaborn style defaults and set the default figure size
