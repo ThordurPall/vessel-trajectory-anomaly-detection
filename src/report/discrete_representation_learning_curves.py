@@ -13,9 +13,9 @@ def main():  # main(input_filepath, output_filepath):
     discrete representation learning curves
     """
     # learning_curves_Bornholm()
-    learning_curves_injected_cargo_Bornholm()
+    # learning_curves_injected_cargo_Bornholm()
     # Bornholm_test_set()
-    # learning_curves_Skagen()
+    learning_curves_Skagen()
 
 
 def learning_curves_Bornholm():

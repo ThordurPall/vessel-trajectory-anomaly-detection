@@ -17,7 +17,7 @@ def main():  # main(input_filepath, output_filepath):
     """Runs code to generate report ready visualization to use for
     showing detected outliers
     """
-    contrario_epsilon = 1e-27
+    contrario_epsilon = 1e-9
     # Bornholm_plot_detected_outlier(contrario_epsilon)
     # Bornholm_plot_detected_outlier_cargo_injected(contrario_epsilon)
     Skagen_plot_detected_outlier(contrario_epsilon)
