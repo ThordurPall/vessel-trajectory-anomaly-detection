@@ -3,6 +3,7 @@ import logging
 import pickle
 from pathlib import Path
 
+import click
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -10,6 +11,10 @@ import pandas as pd
 from src.visualisation.SummaryTrajectories import SummaryTrajectories
 from src.visualisation.VisualiseTrajectories import VisualiseTrajectories
 
+
+@click.command()
+# @click.argument("input_filepath", type=click.Path(exists=True))
+# @click.argument("output_filepath", type=click.Path())
 def main():  # main(input_filepath, output_filepath):
     """Runs code to generate report ready visualization to use for
     data exploration in the report
@@ -133,9 +138,9 @@ def show_region_based_heatmaps():
         type=type,
         x=x,
         y=y,
-        bins=250,  # 400,
-        vmax=6000,
-        cmin=1000,
+        bins=120,  # 400,
+        vmax=40000,
+        cmin=5000,
         cb_label=cb_label,
         file_name="AIS_heatmap_Fishing",
     )
@@ -144,9 +149,9 @@ def show_region_based_heatmaps():
         type=type,
         x=x,
         y=y,
-        bins=150,
-        vmax=2000,
-        cmin=500,
+        bins=90,
+        vmax=6000,
+        cmin=1500,
         cb_label=cb_label,
         file_name="AIS_heatmap_Fishing",
     )
@@ -168,9 +173,9 @@ def show_region_based_heatmaps():
         type=type,
         x=x,
         y=y,
-        bins=250,  # 400,
-        vmax=6000,
-        cmin=1000,
+        bins=120,  # 400,
+        vmax=40000,
+        cmin=5000,
         file_name="AIS_heatmap_Cargo",
         cb_label=cb_label,
     )
@@ -179,9 +184,9 @@ def show_region_based_heatmaps():
         type=type,
         x=x,
         y=y,
-        bins=150,
-        vmax=2000,
-        cmin=500,
+        bins=90,
+        vmax=6000,
+        cmin=1500,
         file_name="AIS_heatmap_Cargo",
         cb_label=cb_label,
     )
