@@ -7,14 +7,16 @@ import pandas as pd
 
 from src.visualisation.SummaryModels import SummaryModels
 
+
 def main():  # main(input_filepath, output_filepath):
     """Runs code to generate report ready visualization related to
     discrete representation learning curves
     """
     # learning_curves_Bornholm()
     # learning_curves_Bornholm_trials()
+    learning_curves_with_bias_Bornholm_trials()
     # Bornholm_test_set()
-    learning_curves_Skagen()
+    # learning_curves_Skagen()
 
 
 def learning_curves_Bornholm():
@@ -252,7 +254,7 @@ def learning_curves_Bornholm_trials():
     # Use the SummaryModels class
     generative_dist = "GMM"
     GMM_equally_weighted = False
-    learning_rate = 0.00003
+    learning_rate = 0.0001
     summary_models = SummaryModels(
         file_name,
         generative_dist=generative_dist,
@@ -262,7 +264,7 @@ def learning_curves_Bornholm_trials():
         plot_figures=False,
         GMM_equally_weighted=GMM_equally_weighted,
     )
-    df_0_00003 = summary_models.load_curves_df("GMM, LR: 0.00003", level=level)
+    df_0_00003 = summary_models.load_curves_df("GMM, LR: 0.0001", level=level)
 
     generative_dist = "Isotropic_Gaussian"
     learning_rate = 0.00005
@@ -278,14 +280,16 @@ def learning_curves_Bornholm_trials():
 
     learning_rate = 0.0001
     summary_models = SummaryModels(
-        file_name,
+        "RegionBornholm_01062019_30092019_FishCargTank_14400_86400_600",
         generative_dist=generative_dist,
         learning_rate=learning_rate,
         font_scale=font_scale,
         save_figures=True,
         plot_figures=False,
     )
-    df_0_0001 = summary_models.load_curves_df("Gaussian LR: 0.0001", level=level)
+    df_0_0001 = summary_models.load_curves_df(
+        "Fishing/Cargo/Tankers", level=level, validation_only=True
+    )
 
     generative_dist = "GMM"
     learning_rate = 0.0003
@@ -322,11 +326,11 @@ def learning_curves_Bornholm_trials():
     df.reset_index(drop=True, inplace=True)
     hue = "Setup type"
     hue_order = [
-        "GMM, LR: 0.00003",
+        "GMM, LR: 0.0001",
         "GMM, LR: 0.0003",
         "Gaussian, LR: 0.00005",
-        "Gaussian, LR: 0.0001",
         "Gaussian, LR: 0.001",
+        "Fishing/Cargo/Tankers",
     ]
 
     # Do the actual plotting
@@ -435,9 +439,7 @@ def learning_curves_Bornholm_trials():
         scheduler_gamma=scheduler_gamma,
         scheduler_milestones=scheduler_milestones,
     )
-    df_0_5 = summary_models.load_curves_df(
-        "LR: 0.0001, γ = 0.5", level=level
-    )
+    df_0_5 = summary_models.load_curves_df("LR: 0.0001, γ = 0.5", level=level)
 
     # Setup the correct foldure structure
     summary_models.model_fig_dir = (
@@ -480,6 +482,151 @@ def learning_curves_Bornholm_trials():
         ylims=[ylims[2]],
         xlims=[xlims[2]],
         file_name="Bornholm_Diagonal_Fishing_Vessel_Reconstruction_Learning_Curves_Trials_2",
+        plot_loss=False,
+        plot_kl=False,
+        plot_recon=True,
+        fig_size=fig_size,
+        hue=hue,
+        hue_order=hue_order,
+    )
+
+
+def learning_curves_with_bias_Bornholm_trials():
+    """Show different learning rate trials in Bornholm for models that have bias"""
+    # Set variables to use for constructing the plot
+    level = "Step"
+    ylims = [(4, 30), (0, 1), (-30, -4)]
+    fig_size = (4, 4)
+    font_scale = 1.5
+    file_name = "RegionBornholm_01062019_30092019_Fish_14400_86400_600"
+
+    # Use the SummaryModels class
+    generative_dist = "Diagonal"
+    learning_rate = 0.00005
+    use_generative_bias = True
+    summary_models = SummaryModels(
+        file_name,
+        generative_dist=generative_dist,
+        learning_rate=learning_rate,
+        use_generative_bias=use_generative_bias,
+        font_scale=font_scale,
+        save_figures=True,
+        plot_figures=False,
+    )
+    df_default_0_00005 = summary_models.load_curves_df("LR: 0.00005", level=level)
+
+    learning_rate = 0.0001
+    use_generative_bias = True
+    summary_models = SummaryModels(
+        file_name,
+        generative_dist=generative_dist,
+        learning_rate=learning_rate,
+        use_generative_bias=use_generative_bias,
+        font_scale=font_scale,
+        save_figures=True,
+        plot_figures=False,
+    )
+    df_default_0_0001 = summary_models.load_curves_df("LR: 0.0001", level=level)
+
+    learning_rate = 0.0005
+    use_generative_bias = True
+    summary_models = SummaryModels(
+        file_name,
+        generative_dist=generative_dist,
+        learning_rate=learning_rate,
+        use_generative_bias=use_generative_bias,
+        font_scale=font_scale,
+        save_figures=True,
+        plot_figures=False,
+    )
+    df_default_0_0005 = summary_models.load_curves_df("LR: 0.0005", level=level)
+
+    learning_rate = 0.001
+    use_generative_bias = True
+    summary_models = SummaryModels(
+        file_name,
+        generative_dist=generative_dist,
+        learning_rate=learning_rate,
+        use_generative_bias=use_generative_bias,
+        font_scale=font_scale,
+        save_figures=True,
+        plot_figures=False,
+    )
+    df_default_0_001 = summary_models.load_curves_df("LR: 0.001", level=level)
+
+    learning_rate = 0.003
+    use_generative_bias = True
+    summary_models = SummaryModels(
+        file_name,
+        generative_dist=generative_dist,
+        learning_rate=learning_rate,
+        use_generative_bias=use_generative_bias,
+        font_scale=font_scale,
+        save_figures=True,
+        plot_figures=False,
+    )
+    df_default_0_003 = summary_models.load_curves_df("LR: 0.003", level=level)
+
+    learning_rate = 0.005
+    use_generative_bias = True
+    summary_models = SummaryModels(
+        file_name,
+        generative_dist=generative_dist,
+        learning_rate=learning_rate,
+        use_generative_bias=use_generative_bias,
+        font_scale=font_scale,
+        save_figures=True,
+        plot_figures=False,
+    )
+    df_default_0_005 = summary_models.load_curves_df("LR: 0.005", level=level)
+
+    # Setup the correct foldure structure
+    summary_models.model_fig_dir = (
+        summary_models.project_dir / "figures" / "report" / "models"
+    )
+    summary_models.learning_curve_dir = summary_models.model_fig_dir / "learning-curves"
+
+    df = pd.concat(
+        [
+            df_default_0_00005,
+            df_default_0_0001,
+            df_default_0_0005,
+            df_default_0_001,
+            df_default_0_003,
+            df_default_0_005,
+        ]
+    )
+    df.reset_index(drop=True, inplace=True)
+    hue = "Setup type"
+    hue_order = [
+        "LR: 0.00005",
+        "LR: 0.0001",
+        "LR: 0.0005",
+        "LR: 0.003",
+        "LR: 0.005",
+        "LR: 0.001",
+    ]
+
+    # Do the actual plotting
+    x = "Number of optimiser steps"
+    ylims = [(-5, 40), (0, 10), (-40, 5)]
+    summary_models.plot_curves(
+        df,
+        x=x,
+        ylims=[ylims[0]],
+        file_name="Bornholm_Bias_Diagonal_Fishing_Vessel_Loss_Learning_Curves_Trials",
+        plot_kl=False,
+        plot_recon=False,
+        fig_size=fig_size,
+        hue=hue,
+        hue_order=hue_order,
+    )
+
+    summary_models.plot_curves(
+        df,
+        x=x,
+        ylims=[ylims[2]],
+        file_name="Bornholm_Bias_Diagonal_Fishing_Vessel_Reconstruction_Learning_Curves_Trials",
         plot_loss=False,
         plot_kl=False,
         plot_recon=True,

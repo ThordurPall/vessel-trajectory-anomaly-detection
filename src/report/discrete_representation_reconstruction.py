@@ -292,7 +292,7 @@ def validation_reconstruction_Bornholm_with_cargo():
     file_name = "RegionBornholm_01062019_30092019_Fish_14400_86400_600"
     generative_dist = "Bernoulli"
     learning_rate = 0.001
-    intermediate_epoch = 250    
+    intermediate_epoch = 250
     continuous_representation = False
     inject_cargo_proportion = 2.0
 
@@ -934,6 +934,7 @@ def validation_reconstruction_Skagen():
         }
     )
 
+
 def test_reconstruction_Skagen():
     """Constructs test reconstruction plots for models in Skagen"""
     # Define the region to look into
@@ -1126,6 +1127,7 @@ def test_reconstruction_Skagen():
             "Reconstructed trajectory": df_recon,
         }
     )
+
 
 if __name__ == "__main__":
     main()
