@@ -15,9 +15,10 @@ def main():  # main(input_filepath, output_filepath):
     # learning_curves_Bornholm()
     # learning_curves_Bornholm_trials()
     # learning_curves_with_bias_Bornholm_trials()
-    learning_curves_Bornholm_with_Bias()
+    # learning_curves_Bornholm_with_Bias()
     # Bornholm_test_set()
     # learning_curves_Skagen()
+    learning_curves_Skagen_with_Bias()
     # learning_curves_with_bias_Skagen_trials()
 
 
@@ -820,6 +821,72 @@ def learning_curves_Skagen():
         plot_recon=True,
         fig_size=fig_size,
         remove_label_title=True,
+    )
+
+
+def learning_curves_Skagen_with_Bias():
+    """Constructs learning curves for diagonal Guassian model in Skagen (with Bias)"""
+    # Set variables to use for constructing the plot
+    level = "Step"
+    fig_size = (4, 4)
+    font_scale = 1.5
+    file_name = "RegionSkagen_01062019_30092019_Fish_14400_86400_600"
+    opt_steps_per_epoch = 29
+
+    # Get the learning curves for the diagonal Gaussian
+    setup_type = "Diagonal Gaussian"
+    generative_dist = "Diagonal"
+    learning_rate = 0.001
+    # scheduler_gamma = [0.6, 0.6, 0.5, 0.6, 0.6, 0.5, 0.5]
+    # scheduler_milestones = [25, 50, 100, 150, 200, 250, 400]
+    use_generative_bias = True
+
+    summary_models = SummaryModels(
+        file_name,
+        generative_dist=generative_dist,
+        learning_rate=learning_rate,
+        # scheduler_gamma=scheduler_gamma,
+        # scheduler_milestones=scheduler_milestones,
+        font_scale=font_scale,
+        save_figures=True,
+        plot_figures=False,
+        use_generative_bias=use_generative_bias,
+    )
+    df_Diagonal = summary_models.load_curves_df(setup_type, level=level)
+
+    # Setup the correct foldure structure
+    summary_models.model_fig_dir = (
+        summary_models.project_dir / "figures" / "report" / "models"
+    )
+    summary_models.learning_curve_dir = summary_models.model_fig_dir / "learning-curves"
+
+    # Do the actual plotting
+    x = "Number of optimiser steps"
+    ylims = [(-5, 35), (0, 1), (-35, 5)]
+    # vertical_locations = [opt_steps_per_epoch * x for x in scheduler_milestones]
+    # vertical_heights = [-4] * len(scheduler_milestones)
+    summary_models.plot_curves(
+        df_Diagonal,
+        x=x,
+        ylims=[ylims[0]],
+        file_name="Skagen_Diagonal_Fishing_Vessel_Loss_Learning_Curves_with_bias",
+        plot_kl=False,
+        plot_recon=False,
+        fig_size=fig_size,
+        #    vertical_locations=vertical_locations,
+        #     vertical_heights=vertical_heights,
+        # vertical_heights_min=-5,
+    )
+
+    summary_models.plot_curves(
+        df_Diagonal,
+        x=x,
+        ylims=[ylims[2]],
+        file_name="Skagen_Diagonal_Fishing_Vessel_Reconstruction_Learning_Curves_with_bias",
+        plot_loss=False,
+        plot_kl=False,
+        plot_recon=True,
+        fig_size=fig_size,
     )
 
 

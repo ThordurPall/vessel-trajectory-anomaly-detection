@@ -13,8 +13,8 @@ def main():  # main(input_filepath, output_filepath):
     discrete representation learning curves
     """
     # validation_reconstruction_Bornholm()
-    validation_reconstruction_Bornholm_with_bias()
-    # test_reconstruction_Bornholm()
+    # validation_reconstruction_Bornholm_with_bias()
+    test_reconstruction_Bornholm()
     # validation_reconstruction_Skagen()
 
 
@@ -454,9 +454,10 @@ def test_reconstruction_Bornholm():
     # Use the SummaryModels class for everything related to the reconstructions
     file_name = "RegionBornholm_01062019_30092019_Fish_14400_86400_600"
     generative_dist = "Diagonal"
-    learning_rate = 0.00005
-    scheduler_gamma = [0.5, 0.5, 0.7, 0.6]
-    scheduler_milestones = [500, 700, 1000, 1300]
+    learning_rate = 0.003
+    scheduler_gamma = [0.6, 0.6, 0.5, 0.6, 0.6, 0.5, 0.5]
+    scheduler_milestones = [25, 50, 100, 150, 200, 250, 400]
+    use_generative_bias = True
     fig_size = (4, 4)
     font_scale = 1.5
 
@@ -471,6 +472,7 @@ def test_reconstruction_Bornholm():
         fig_size=fig_size,
         save_figures=True,
         plot_figures=False,
+        use_generative_bias=use_generative_bias,
     )
 
     # Setup the correct foldure structure

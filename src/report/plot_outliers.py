@@ -18,10 +18,10 @@ def main():  # main(input_filepath, output_filepath):
     showing detected outliers
     """
     contrario_epsilon = 1e-9
-    # Bornholm_plot_detected_outlier(contrario_epsilon)
+    Bornholm_plot_detected_outlier(contrario_epsilon)
     # Bornholm_plot_detected_outlier_cargo_injected(contrario_epsilon)
     # Skagen_plot_detected_outlier(contrario_epsilon)
-    Bornholm_plot_detected_outlier_continuous(contrario_epsilon)
+    # Bornholm_plot_detected_outlier_continuous(contrario_epsilon)
 
 
 def Bornholm_plot_detected_outlier(contrario_epsilon=1e-9):
@@ -329,11 +329,10 @@ def Bornholm_plot_detected_outlier_continuous(contrario_epsilon=1e-9):
     # Use the SummaryModels class
     file_name = "RegionBornholm_01062019_30092019_Fish_14400_86400_600"
     generative_dist = "Diagonal"
-    learning_rate = 0.003
-    scheduler_gamma = [0.6, 0.6, 0.5, 0.6, 0.6, 0.5, 0.5]
-    scheduler_milestones = [25, 50, 100, 150, 200, 250, 400]
-    use_generative_bias = True
-    contrario_epsilon = 1e-9
+    learning_rate = 0.00005
+    scheduler_gamma = [0.5, 0.5, 0.7, 0.6]
+    scheduler_milestones = [500, 700, 1000, 1300]
+    contrario_epsilon = 1e-27
     summary_models = SummaryModels(
         file_name,
         # intermediate_epoch=intermediate_epoch,
@@ -341,7 +340,6 @@ def Bornholm_plot_detected_outlier_continuous(contrario_epsilon=1e-9):
         generative_dist=generative_dist,
         scheduler_gamma=scheduler_gamma,
         scheduler_milestones=scheduler_milestones,
-        use_generative_bias=use_generative_bias,
     )
 
     # Use the VisualiseTrajectories class for geographically visualising trajectories
