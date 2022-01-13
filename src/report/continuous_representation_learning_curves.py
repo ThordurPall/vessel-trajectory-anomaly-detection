@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 from src.visualisation.SummaryModels import SummaryModels
+import src.utils.utils as utils
 
 
 def main():  # main(input_filepath, output_filepath):
@@ -274,9 +275,10 @@ def Bornholm_test_set():
 
     # Get the learning curves for the diagonal Gaussian
     generative_dist = "Diagonal"
-    learning_rate = 0.00005
-    scheduler_gamma = [0.5, 0.5, 0.7, 0.6]
-    scheduler_milestones = [500, 700, 1000, 1300]
+    learning_rate = 0.003
+    scheduler_gamma = [0.6, 0.6, 0.5, 0.6, 0.6, 0.5, 0.5]
+    scheduler_milestones = [25, 50, 100, 150, 200, 250, 400]
+    use_generative_bias = True
 
     summary_models = SummaryModels(
         file_name,
@@ -288,10 +290,41 @@ def Bornholm_test_set():
         fig_size=fig_size,
         save_figures=True,
         plot_figures=True,
+        use_generative_bias=use_generative_bias,
     )
 
     # Get data on the test set
     data = summary_models.run_evaluation(validation=False)["TrajectoryLevelData"]
+
+    # Get outliers and normal indicies
+    processed_data_dir = summary_models.project_dir / "data" / "processed"
+    data_info_file = processed_data_dir / ("datasetInfo_" + file_name + ".pkl")
+    data_info = utils.read_data_info_file(data_info_file)
+    contrario_epsilon = 1e-9
+
+    outliers = utils.read_data_info_file(
+        summary_models.project_dir
+        / "outliers"
+        / (
+            "outliers_eps"
+            + str(contrario_epsilon)
+            + "_"
+            + summary_models.model_name
+            + ".pkl"
+        )
+    )
+    outlier_indicies = [
+        i for (i, v) in zip(data_info["testIndicies"], outliers["test_outliers"]) if v
+    ]
+    normal_indicies = [
+        i
+        for (i, v) in zip(data_info["testIndicies"], outliers["test_outliers"])
+        if not v
+    ]
+    track_type = []
+    for i in data["Index"]:
+        track_type.append("Anomalous" if i in outlier_indicies else "Normal")
+    data["Trajectory type"] = track_type
 
     # Setup the correct foldure structure
     summary_models.model_fig_dir = (
@@ -308,6 +341,9 @@ def Bornholm_test_set():
         print_summary_stats=True,
         file_name="Bornholm_Diagonal_Fishing_Vessel_Test_Set_Reconstruction_Histogram",
         xlabel="Reconstruction log likelihood",
+        hue="Trajectory type",
+        hue_order=["Normal", "Anomalous"],
+        palette=True,
     )
 
 
@@ -831,22 +867,22 @@ def learning_curves_Skagen_with_Bias():
     fig_size = (4, 4)
     font_scale = 1.5
     file_name = "RegionSkagen_01062019_30092019_Fish_14400_86400_600"
-    opt_steps_per_epoch = 29
+    opt_steps_per_epoch = 813
 
     # Get the learning curves for the diagonal Gaussian
     setup_type = "Diagonal Gaussian"
     generative_dist = "Diagonal"
     learning_rate = 0.001
-    # scheduler_gamma = [0.6, 0.6, 0.5, 0.6, 0.6, 0.5, 0.5]
-    # scheduler_milestones = [25, 50, 100, 150, 200, 250, 400]
+    scheduler_gamma = [0.8, 0.7]
+    scheduler_milestones = [20, 40]
     use_generative_bias = True
 
     summary_models = SummaryModels(
         file_name,
         generative_dist=generative_dist,
         learning_rate=learning_rate,
-        # scheduler_gamma=scheduler_gamma,
-        # scheduler_milestones=scheduler_milestones,
+        scheduler_gamma=scheduler_gamma,
+        scheduler_milestones=scheduler_milestones,
         font_scale=font_scale,
         save_figures=True,
         plot_figures=False,
@@ -862,9 +898,9 @@ def learning_curves_Skagen_with_Bias():
 
     # Do the actual plotting
     x = "Number of optimiser steps"
-    ylims = [(-5, 35), (0, 1), (-35, 5)]
-    # vertical_locations = [opt_steps_per_epoch * x for x in scheduler_milestones]
-    # vertical_heights = [-4] * len(scheduler_milestones)
+    ylims = [(-5, 40), (0, 1), (-40, 5)]
+    vertical_locations = [opt_steps_per_epoch * x for x in scheduler_milestones]
+    vertical_heights = [-4] * len(scheduler_milestones)
     summary_models.plot_curves(
         df_Diagonal,
         x=x,
@@ -873,9 +909,9 @@ def learning_curves_Skagen_with_Bias():
         plot_kl=False,
         plot_recon=False,
         fig_size=fig_size,
-        #    vertical_locations=vertical_locations,
-        #     vertical_heights=vertical_heights,
-        # vertical_heights_min=-5,
+        vertical_locations=vertical_locations,
+        vertical_heights=vertical_heights,
+        vertical_heights_min=-5,
     )
 
     summary_models.plot_curves(
@@ -1017,6 +1053,87 @@ def learning_curves_with_bias_Skagen_trials():
         fig_size=fig_size,
         hue=hue,
         hue_order=hue_order,
+    )
+
+
+def Skagen_test_set():
+    """Constructs figures using the Skagen test set for the chosen model"""
+    # Set variables to use for constructing the plot
+    fig_size = (4, 4)
+    font_scale = 1.5
+    file_name = "RegionSkagen_01062019_30092019_Fish_14400_86400_600"
+
+    # Get the learning curves for the diagonal Gaussian
+    generative_dist = "Diagonal"
+    learning_rate = 0.003
+    scheduler_gamma = [0.6, 0.6, 0.5, 0.6, 0.6, 0.5, 0.5]
+    scheduler_milestones = [25, 50, 100, 150, 200, 250, 400]
+    use_generative_bias = True
+
+    summary_models = SummaryModels(
+        file_name,
+        generative_dist=generative_dist,
+        learning_rate=learning_rate,
+        scheduler_gamma=scheduler_gamma,
+        scheduler_milestones=scheduler_milestones,
+        font_scale=font_scale,
+        fig_size=fig_size,
+        save_figures=True,
+        plot_figures=True,
+        use_generative_bias=use_generative_bias,
+    )
+
+    # Get data on the test set
+    data = summary_models.run_evaluation(validation=False)["TrajectoryLevelData"]
+
+    # Get outliers and normal indicies
+    processed_data_dir = summary_models.project_dir / "data" / "processed"
+    data_info_file = processed_data_dir / ("datasetInfo_" + file_name + ".pkl")
+    data_info = utils.read_data_info_file(data_info_file)
+    contrario_epsilon = 1e-9
+
+    outliers = utils.read_data_info_file(
+        summary_models.project_dir
+        / "outliers"
+        / (
+            "outliers_eps"
+            + str(contrario_epsilon)
+            + "_"
+            + summary_models.model_name
+            + ".pkl"
+        )
+    )
+    outlier_indicies = [
+        i for (i, v) in zip(data_info["testIndicies"], outliers["test_outliers"]) if v
+    ]
+    normal_indicies = [
+        i
+        for (i, v) in zip(data_info["testIndicies"], outliers["test_outliers"])
+        if not v
+    ]
+    track_type = []
+    for i in data["Index"]:
+        track_type.append("Anomalous" if i in outlier_indicies else "Normal")
+    data["Trajectory type"] = track_type
+
+    # Setup the correct foldure structure
+    summary_models.model_fig_dir = (
+        summary_models.project_dir / "figures" / "report" / "models"
+    )
+    summary_models.learning_curve_dir = summary_models.model_fig_dir / "learning-curves"
+
+    # Do the actual plotting
+    x = "Equally weighted reconstruction log probability"
+    summary_models.hist_stacked_plot(
+        data,
+        type="Histogram",
+        x=x,
+        print_summary_stats=True,
+        file_name="Skagen_Diagonal_Fishing_Vessel_Test_Set_Reconstruction_Histogram",
+        xlabel="Reconstruction log likelihood",
+        hue="Trajectory type",
+        hue_order=["Normal", "Anomalous"],
+        palette=True,
     )
 
 
