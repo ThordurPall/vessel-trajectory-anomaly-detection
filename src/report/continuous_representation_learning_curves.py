@@ -19,8 +19,9 @@ def main():  # main(input_filepath, output_filepath):
     # learning_curves_Bornholm_with_Bias()
     # Bornholm_test_set()
     # learning_curves_Skagen()
-    learning_curves_Skagen_with_Bias()
+    # learning_curves_Skagen_with_Bias()
     # learning_curves_with_bias_Skagen_trials()
+    Skagen_test_set()
 
 
 def learning_curves_Bornholm():
@@ -1065,9 +1066,9 @@ def Skagen_test_set():
 
     # Get the learning curves for the diagonal Gaussian
     generative_dist = "Diagonal"
-    learning_rate = 0.003
-    scheduler_gamma = [0.6, 0.6, 0.5, 0.6, 0.6, 0.5, 0.5]
-    scheduler_milestones = [25, 50, 100, 150, 200, 250, 400]
+    learning_rate = 0.001
+    scheduler_gamma = [0.8, 0.7]
+    scheduler_milestones = [20, 40]
     use_generative_bias = True
 
     summary_models = SummaryModels(
@@ -1134,6 +1135,7 @@ def Skagen_test_set():
         hue="Trajectory type",
         hue_order=["Normal", "Anomalous"],
         palette=True,
+        xlim=[-4.5, 9.0],
     )
 
 
