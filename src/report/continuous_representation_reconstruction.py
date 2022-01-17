@@ -15,8 +15,8 @@ def main():  # main(input_filepath, output_filepath):
     # validation_reconstruction_Bornholm()
     # validation_reconstruction_Bornholm_with_bias()
     # validation_reconstruction_Bornholm_with_bias_best()
-    # test_reconstruction_Bornholm()
-    validation_reconstruction_Skagen_with_bias()
+    test_reconstruction_Bornholm()
+    # validation_reconstruction_Skagen_with_bias()
     # test_reconstruction_Skagen()
 
 
@@ -696,7 +696,7 @@ def test_reconstruction_Bornholm():
     data = summary_models.run_evaluation_get_n(n=100, worst=True, validation=validation)
     df_n = data["TrajectoryLevelData"]
     train_evaluate = data["TrainEvaluateObject"]
-    idx = 1  # Show the second worst reconstruction (also the second worst in Bernoulli)
+    idx = 0  # Show the worst reconstruction (also the worst in Bernoulli)
 
     # Setup for the plotting
     fig, ax = visualise_trajectories.visualise_static_map(img)
@@ -732,7 +732,7 @@ def test_reconstruction_Bornholm():
         fig=fig,
         rect=[0.125, 0.65, 0.3, 0.23],
         # rect2=[0.575, 0.72, 0.12, 0.12],
-        file_name="Bornholm_Diagonal_Fishing_Vessel_Test_Set_Reconstruction_Worst_2_1",
+        file_name="Bornholm_Diagonal_Fishing_Vessel_Test_Set_Reconstruction_Worst_1_1",
         font_size=37,
     )
     visualise_trajectories.trajectories_fig_dir = tmp
@@ -748,7 +748,7 @@ def test_reconstruction_Bornholm():
         fig=fig,
         # rect=[0.125, 0.65, 0.3, 0.23],
         rect2=[0.125, 0.65, 0.3, 0.23],
-        file_name="Bornholm_Diagonal_Fishing_Vessel_Test_Set_Reconstruction_Worst_2_2",
+        file_name="Bornholm_Diagonal_Fishing_Vessel_Test_Set_Reconstruction_Worst_1_2",
         font_size=37,
     )
     visualise_trajectories.trajectories_fig_dir = tmp
@@ -759,7 +759,7 @@ def test_reconstruction_Bornholm():
     )
     plt.clf()
 
-    # Show the fifth worst reconstruction (the worst in Bernoulli)
+    # Show the fifth-worst reconstruction (the second-worst in Bernoulli)
     idx = 4
 
     # Setup for the plotting
@@ -1071,8 +1071,8 @@ def test_reconstruction_Skagen():
     )
     plt.clf()
 
-    # Show the second worst reconstruction
-    idx = 5
+    # Show the fifth-worst reconstruction
+    idx = 4
 
     # Setup for the plotting
     fig, ax = visualise_trajectories.visualise_static_map(img)
