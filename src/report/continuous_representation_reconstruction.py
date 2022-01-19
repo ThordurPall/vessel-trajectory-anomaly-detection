@@ -13,9 +13,9 @@ def main():  # main(input_filepath, output_filepath):
     discrete representation learning curves
     """
     # validation_reconstruction_Bornholm()
-    # validation_reconstruction_Bornholm_with_bias()
+    validation_reconstruction_Bornholm_with_bias()
     # validation_reconstruction_Bornholm_with_bias_best()
-    test_reconstruction_Bornholm()
+    # test_reconstruction_Bornholm()
     # validation_reconstruction_Skagen_with_bias()
     # test_reconstruction_Skagen()
 
@@ -444,6 +444,8 @@ def validation_reconstruction_Bornholm_with_bias():
             "Reconstructed trajectory": df_recon,
         }
     )
+    print(df_recon.sort_values("Speed sigma"))
+    print(df_recon.sort_values("Course sigma"))
 
 
 def validation_reconstruction_Bornholm_with_bias_best():

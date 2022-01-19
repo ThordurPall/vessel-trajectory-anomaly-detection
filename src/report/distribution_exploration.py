@@ -114,8 +114,8 @@ def explore_Gaussian_Bornholm_with_bias():
     df_hist = df.reset_index()
     df_hist = df_hist.loc[df_hist["Ship type"] == "Fishing"]
     df_hist = df_hist.reset_index()
-    mu = 12.55
-    sigma = 0.58
+    mu = 12.482
+    sigma = 1.085
     x = np.linspace(mu - 3 * sigma, mu + 3 * sigma, 100)
     summary_trajectories.hist_bar_plot(
         df_hist,
@@ -131,8 +131,8 @@ def explore_Gaussian_Bornholm_with_bias():
 
     # Plot the mean course histogram for fishing vessels
     plt.clf()
-    mu = 184.8
-    sigma = 100.7
+    mu = 184.337
+    sigma = 101.353
     x = np.linspace(mu - 3 * sigma, mu + 3 * sigma, 100)
     summary_trajectories.hist_bar_plot(
         df_hist,
