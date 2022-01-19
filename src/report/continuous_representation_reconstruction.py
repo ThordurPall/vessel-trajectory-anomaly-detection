@@ -951,7 +951,7 @@ def test_reconstruction_Bornholm_for_comparison():
 
     # Setup for the plotting
     fig, ax = visualise_trajectories.visualise_static_map(img)
-    index = 2777964
+    index = 2895466
     data_set = AISDataset(
         file_name, data_info=data_info, indicies=[index], discrete=False
     )
