@@ -232,7 +232,7 @@ class SummaryModels:
         IntermediateEpoch = ""
         if intermediate_epoch is not None:
             IntermediateEpoch = "_" + str(intermediate_epoch)
-        
+
         UseGenerativeBias = ""
         FirstOrderDiff = ""
         if self.discrete:
@@ -251,7 +251,7 @@ class SummaryModels:
                 GMMEquallyWeighted = "EW"
             else:
                 GMMEquallyWeighted = "NEW"
-        
+
         self.model_name = (
             model_prefix
             + model
@@ -375,6 +375,7 @@ class SummaryModels:
         plot_recon=True,
         vertical_locations=None,
         vertical_heights=None,
+        vertical_heights_min=0,
         remove_label_title=False,
     ):
         """Plots the loss, KL divergence, and reconstruction log probabilities side by side
@@ -432,7 +433,7 @@ class SummaryModels:
                 # Add vertical lines to the loss figure
                 plt.vlines(
                     x=vertical_locations,
-                    ymin=[0] * len(vertical_locations),
+                    ymin=[vertical_heights_min] * len(vertical_locations),
                     ymax=vertical_heights,
                     colors="black",
                     lw=3,
@@ -530,7 +531,7 @@ class SummaryModels:
             data=df,
         )
         ax.set_ylabel("Reconstruction log likelihood")
-        
+
         sns.despine()
         if title is not None:
             ax.set_title(title)
@@ -581,7 +582,7 @@ class SummaryModels:
             trained_model_name=self.model_name,
             GMM_components=self.GMM_components,
             GMM_equally_weighted=self.GMM_equally_weighted,
-            use_generative_bias=self.use_generative_bias, 
+            use_generative_bias=self.use_generative_bias,
             first_order_diff=self.first_order_diff,
         )
 
@@ -731,6 +732,7 @@ class SummaryModels:
         print_summary_stats=False,
         stat=None,
         weights=None,
+        palette=False,
     ):
         """Creates a histogram or stacked histogram plot
 
@@ -793,8 +795,17 @@ class SummaryModels:
         if type == "Histogram":
             if stat is None:
                 stat = "count"
+            palette = (
+                [sns.color_palette()[1], sns.color_palette()[2]] if palette else None
+            )
             ax = sns.histplot(
-                x=x, bins=bins, hue=hue, hue_order=hue_order, data=data, stat=stat
+                x=x,
+                bins=bins,
+                hue=hue,
+                hue_order=hue_order,
+                data=data,
+                stat=stat,
+                palette=palette,
             )
 
         elif type == "Stacked":
