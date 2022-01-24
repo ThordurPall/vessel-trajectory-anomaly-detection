@@ -243,10 +243,17 @@ class TrainEvaluate:
             file_name_carg_tank = file_name.replace("FishCargTank", "CargTank")
 
             # Load the fishing vessel only and cargo/tanker only training sets
-            training_set_fish = AISDataset(file_name_fish, discrete=self.discrete, first_order_diff=self.first_order_diff)
-            training_set_carg_tank = AISDataset(
-                file_name_carg_tank, discrete=self.discrete, first_order_diff=self.first_order_diff
+            training_set_fish = AISDataset(
+                file_name_fish,
+                discrete=self.discrete,
+                first_order_diff=self.first_order_diff,
             )
+            training_set_carg_tank = AISDataset(
+                file_name_carg_tank,
+                discrete=self.discrete,
+                first_order_diff=self.first_order_diff,
+            )
+            breakpoint()
 
             # Combine the two data sets and update the mean values to the overall training mean value
             training_set = ConcatDataset([training_set_fish, training_set_carg_tank])
@@ -271,7 +278,11 @@ class TrainEvaluate:
             training_set_carg_tank.mean = self.train_mean
             self.input_shape = training_set_carg_tank.data_dim
         else:
-            training_set = AISDataset(file_name, discrete=self.discrete, first_order_diff=self.first_order_diff)
+            training_set = AISDataset(
+                file_name,
+                discrete=self.discrete,
+                first_order_diff=self.first_order_diff,
+            )
             self.train_mean = training_set.mean
             self.train_std = None if self.discrete else training_set.std
             self.input_shape = training_set.data_dim
@@ -280,7 +291,9 @@ class TrainEvaluate:
             # Inject additional cargo/tanker trajectories into the training set
             file_name_carg_tank = file_name.replace("Fish", "CargTank")
             training_set_carg_tank = AISDataset(
-                file_name_carg_tank, discrete=self.discrete, first_order_diff=self.first_order_diff
+                file_name_carg_tank,
+                discrete=self.discrete,
+                first_order_diff=self.first_order_diff,
             )
             n = int(len(training_set) * inject_cargo_proportion)
             indices = range(0, n)
@@ -535,7 +548,7 @@ class TrainEvaluate:
             UseGenerativeBias = ""
             if self.use_generative_bias:
                 UseGenerativeBias = "_GBT"
-            
+
             if first_order_diff:
                 FirstOrderDiff = "_FODT"
 
@@ -715,16 +728,9 @@ class TrainEvaluate:
             lengths = lengths.to(self.device)
 
             # Process input through the network - Pass the input data to the model (executes the model’s forward)
-            (
-                log_px,
-                log_pz,
-                log_qz,
-                _,
-                _,
-                _,
-                _,
-                _,
-            ) = self.model(inputs, targets, use_generative_bias=self.use_generative_bias)
+            (log_px, log_pz, log_qz, _, _, _, _, _,) = self.model(
+                inputs, targets, use_generative_bias=self.use_generative_bias
+            )
 
             # Compute the loss (how far is the output from being correct)
             loss, log_px, kl, _ = self.loss_function(
@@ -804,7 +810,9 @@ class TrainEvaluate:
             lengths = lengths.to(self.device)
 
             # Process input through the network - Pass the input data to the model (executes the model’s forward)
-            log_px, log_pz, log_qz, _, _, _, _, _ = self.model(inputs, targets, use_generative_bias=self.use_generative_bias)
+            log_px, log_pz, log_qz, _, _, _, _, _ = self.model(
+                inputs, targets, use_generative_bias=self.use_generative_bias
+            )
 
             # Compute the loss (how far is the output from being correct)
             loss, log_px, kl, _ = self.loss_function(
@@ -1376,7 +1384,10 @@ class TrainEvaluate:
 
             # Use the pretrained model
             log_px, _, _, logits, _, _, _, _ = self.model(
-                input.unsqueeze(0), target_device.unsqueeze(0), logits=logits, use_generative_bias=self.use_generative_bias
+                input.unsqueeze(0),
+                target_device.unsqueeze(0),
+                logits=logits,
+                use_generative_bias=self.use_generative_bias,
             )
             logits = logits.cpu()
 
@@ -1428,7 +1439,7 @@ class TrainEvaluate:
                 target_device.unsqueeze(0),
                 obs_mus=mus,
                 obs_Sigmas=Sigmas,
-                use_generative_bias=self.use_generative_bias
+                use_generative_bias=self.use_generative_bias,
             )
             mus = mus.cpu()
             Sigmas = Sigmas.cpu()
@@ -1512,7 +1523,7 @@ class TrainEvaluate:
                 obs_mus=mus,
                 obs_Sigmas=sigmas,
                 obs_probs=mix_probs,
-                use_generative_bias=self.use_generative_bias
+                use_generative_bias=self.use_generative_bias,
             )
             mus = mus.cpu()
             sigmas = sigmas.cpu()
