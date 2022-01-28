@@ -124,6 +124,8 @@ class AISDataset(torch.utils.data.Dataset):
                     self.indicies = self.data_info["valIndicies"]
                 else:
                     self.indicies = self.data_info["testIndicies"]
+                    # if len(self.indicies) == 113:
+                    #     self.indicies = [2895466, 2895466]
         else:
             self.indicies = indicies
 
@@ -220,7 +222,7 @@ class AISDataset(torch.utils.data.Dataset):
                 np.array(df[["speed", "course"]].values.tolist()),
                 dtype=torch.float,
             )
-            targets = torch.cat([torch.diff(positions, dim=0),kinematics[1:]],dim=-1)
+            targets = torch.cat([torch.diff(positions, dim=0), kinematics[1:]], dim=-1)
             inputs = (targets - self.mean) / self.std
         else:
             # The original input dimensions should be used
@@ -230,7 +232,7 @@ class AISDataset(torch.utils.data.Dataset):
             )
             inputs = (targets - self.mean) / self.std  # Standardize the input data
         if self.first_order_diff:
-            track_lengths = torch.tensor(track["track_length"]-1., dtype=torch.int)
+            track_lengths = torch.tensor(track["track_length"] - 1.0, dtype=torch.int)
         else:
             track_lengths = torch.tensor(track["track_length"], dtype=torch.int)
 
@@ -272,14 +274,16 @@ class AISDataset(torch.utils.data.Dataset):
                 # Use first order differences for position
                 positions = np.array(df[["lat", "lon"]].values.tolist())
                 kinematics = np.array(df[["speed", "course"]].values.tolist())
-                inputs = np.concatenate([np.diff(positions, axis=0),kinematics[1:]],axis=-1)
+                inputs = np.concatenate(
+                    [np.diff(positions, axis=0), kinematics[1:]], axis=-1
+                )
             else:
                 inputs = np.array(df[["lat", "lon", "speed", "course"]].values.tolist())
             sum_all += np.sum(inputs, axis=0)  # Sum over all time points
             if self.first_order_diff:
-                total_updates += (track["track_length"]-1)
+                total_updates += track["track_length"] - 1
             else:
-                total_updates += (track["track_length"])
+                total_updates += track["track_length"]
         self.total_training_updates = total_updates
 
         # Mean of all the times a certain bin was activated. Used as a normalization factor (Centering in getimtem)
@@ -306,7 +310,10 @@ class AISDataset(torch.utils.data.Dataset):
 
             # Compute the sum of square differences on a AIS update basis
             if self.first_order_diff:
-                for (i, pos), (j, kin) in zip(df[["lat", "lon"]].diff()[1:].iterrows(),df[["speed", "course"]][1:].iterrows()):
+                for (i, pos), (j, kin) in zip(
+                    df[["lat", "lon"]].diff()[1:].iterrows(),
+                    df[["speed", "course"]][1:].iterrows(),
+                ):
                     sum_diff_squared[0] += (pos["lat"] - self.mean[0].item()) ** 2
                     sum_diff_squared[1] += (pos["lon"] - self.mean[1].item()) ** 2
                     sum_diff_squared[2] += (kin["speed"] - self.mean[2].item()) ** 2
@@ -360,7 +367,7 @@ class AISDataset(torch.utils.data.Dataset):
                     lengths.append(track["track_length"])
 
         return torch.tensor(shiptypes), torch.tensor(lengths)
-        
+
     def get_startpos(self, idx):
         """Returns the starting position for track with index idx
 
@@ -375,15 +382,13 @@ class AISDataset(torch.utils.data.Dataset):
             file.seek(self.indicies[idx])
             track = pickle.load(file)
         df = pd.DataFrame(track)
-        
+
         # Return the starting position targets
         targets = torch.tensor(
             np.array(df[["lat", "lon", "speed", "course"]].values.tolist()),
             dtype=torch.float,
         )
-        return targets[0,:]
-        
-        
+        return targets[0, :]
 
 
 class AISDiscreteRepresentation(torch.utils.data.Dataset):
