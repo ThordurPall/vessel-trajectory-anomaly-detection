@@ -18,7 +18,7 @@ Please note that some code in this project builds upon excellent work done by Kr
 │   ├── processed      <- The final data sets used for modelling.
 │   └── raw            <- The original, immutable data dump.
 │
-├── figures            <- Figures used report and explanations.
+├── figures            <- Figures used for reporting and providing explanations.
 │
 ├── models             <- Trained and serialized models and their learning curves.
 │
