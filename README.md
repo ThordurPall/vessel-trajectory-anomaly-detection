@@ -6,5 +6,35 @@ This is a Git repository accompanying the "Vessel Trajectory Anomaly Detection U
  - Examine the impact of different input AIS data representations (discrete vs. continuous inputs).
  - Assess the impact of switching from a Gaussian to a GMM for the generating distribution of the VRNN.
 
- The following image gives the intuition about the difference between the continuous inputs and the discrete binned concatenated vector of the one-hot vectors
+ The following image gives the intuition about the difference between the continuous inputs and the discrete binned concatenated vector of the one-hot vectors:
 ![Explain binning](https://github.com/ThordurPall/vessel-trajectory-anomaly-detection/blob/main/figures/regions/Bornholm/Explain_Binning_Bornholm.png?raw=true)
+
+
+Please note that some code in this project builds upon excellent work done by Kristoffer Vinther Olesen (in particular the util files). The directory structure is as follows: 
+
+```
+├── data
+│   ├── intermediate   <- Intermediate data that has been transformed.
+│   ├── processed      <- The final data sets used for modeling.
+│   └── raw            <- The original, immutable data dump.
+│
+├── figures            <- Figures used report and explanations.
+│
+├── models             <- Trained and serialized models and their learning curves.
+│
+├── notebooks          <- Jupyter notebooks (only used for presenting examples during meetings).
+│
+├── src                <- Source code for use in this project.
+│   ├── __init__.py    <- Makes src a Python module.
+│   │
+│   ├── data           <- Scripts to preprocess data for modelling.
+│   │
+│   ├── models         <- Scripts to train models and then use the trained models.
+│   │
+│   ├── report         <- Scripts to create report ready figures.
+│   │
+│   ├── util           <- Util files used throughout the project.
+│   │
+│   └── visualization  <- Scripts to create exploratory and results oriented visualizations.
+
+```
