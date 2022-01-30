@@ -3,8 +3,8 @@ This is a Git repository accompanying the "Vessel Trajectory Anomaly Detection U
 
  - Analyse the VRNN-based model performance for fishing vessels around Denmark.
  - Evaluate the generalisation of the VRNN-based model to a larger ROI.
- - Examine the impact of different input AIS data representations, in particular of moving from discrete to continuous inputs. The image below gives the intuition about the difference between the continuous inputs and the discrete binned concatenated vector of the one-hot vectors.
+ - Examine the impact of different input AIS data representations, particularly moving from discrete to continuous inputs.
  - Assess the impact of switching from a diagonal multivariate Gaussian distribution to a Gaussian mixture model for the generating distribution of the VRNN.
 
-
+ The following image gives the intuition about the difference between the continuous inputs and the discrete binned concatenated vector of the one-hot vectors
 ![Explain binning](https://github.com/ThordurPall/vessel-trajectory-anomaly-detection/blob/main/figures/regions/Bornholm/Explain_Binning_Bornholm.png?raw=true)
