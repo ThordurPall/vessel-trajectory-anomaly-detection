@@ -37,5 +37,7 @@ Please note that some code in this project builds upon excellent work done by Kr
 │   │
 │   └── visualisation  <- Scripts to create exploratory and results oriented visualizations.
 │
+├── tests              <- Tests that run locally.
+│
 └── requirements.txt   <- The requirements file for reproducing the results environment.
 ```
