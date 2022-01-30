@@ -36,5 +36,6 @@ Please note that some code in this project builds upon excellent work done by Kr
 │   ├── util           <- Util files used throughout the project.
 │   │
 │   └── visualization  <- Scripts to create exploratory and results oriented visualizations.
-
+│
+└── requirements.txt   <- The requirements file for reproducing the results environment.
 ```
