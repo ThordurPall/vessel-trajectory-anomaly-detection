@@ -94,6 +94,7 @@ class ProcessData:
         train_proportion=0.8,
         test_proportion=0.1,
         inject_cargo_proportion=0.0,
+        min_speed=None,
     ):
         """Process raw data into trajectories
 
@@ -126,6 +127,9 @@ class ProcessData:
         inject_cargo_proportion : float (Defaults to 0.0)
             Inject cargo vessel MMSIS in inject_cargo_proportion proportion to the training MMSIs
 
+        min_speed : float (Defaults to None)
+            Provides the opportunity to specify a minimum speed for AIS data points to consider
+
         Returns
         -------
         str
@@ -146,6 +150,9 @@ class ProcessData:
             if inject_cargo_proportion != 0.0
             else ""
         )
+        MinSpeed = (
+            "_" + str(min_speed).replace(".", "") if min_speed is not None else ""
+        )
         result_file_name = (
             "Region"
             + self.region
@@ -162,6 +169,7 @@ class ProcessData:
             + "_"
             + str(resample_frequency)
             + cargo_injected
+            + MinSpeed
         )
         logger.info("Main part of data results file name: " + result_file_name)
 
@@ -172,6 +180,7 @@ class ProcessData:
             "ROI": ROISCOG_config.roi,
             "timeperiod": (self.start_time, self.end_time),
             "maxspeed": ROISCOG_config.SOG_MAX,
+            "minspeed": min_speed,
             "navstatuses": config.get_property("MOV_NAV_STATUSES"),
             "shiptypes": ship_type_files,
             "binedges": ROISCOG_config.binedges,

@@ -38,7 +38,9 @@ def jsonToDict(update, statushist):
     }
 
 
-def getMMSIs(ROI, maxSpeed, timePeriod, allowedShipTypes, navTypes, raw_data_dir):
+def getMMSIs(
+    ROI, maxSpeed, timePeriod, allowedShipTypes, navTypes, raw_data_dir, min_speed=None
+):
 
     # The MMSI needs to be in the RIO within this time period - Get months in timeperiod
     s, e = timePeriod
@@ -61,6 +63,11 @@ def getMMSIs(ROI, maxSpeed, timePeriod, allowedShipTypes, navTypes, raw_data_dir
             shiptype = re.search("[a-zA-Z]*", file).group()
             if shiptype in allowedShipTypes:
                 paths.append(raw_data_dir + "/" + folder + "/" + file)
+
+    # Keep track of the total number of AIS points (after filtering all but min speed)
+    # and keep track of the number of points after also filtering out by min speed
+    n_points = 0
+    n_points_after_min_speed = 0
 
     dataframe = pd.DataFrame(columns=["MMSI", "File"])
     for path in progressbar.progressbar(paths):
@@ -102,6 +109,12 @@ def getMMSIs(ROI, maxSpeed, timePeriod, allowedShipTypes, navTypes, raw_data_dir
             & (df["speed"] <= maxSpeed)
             & (df["navstatus"].isin(navTypes))
         ]
+        n_points += len(df)
+
+        if min_speed is not None:
+            # Add filtering on the min speed as well as an experiment
+            df = df.loc[df["speed"] >= min_speed]
+            n_points_after_min_speed += len(df)
 
         # Add mmsi and path to dataframe (if there are any path updates left
         #  after filtering out what we are not interested in)
@@ -109,6 +122,16 @@ def getMMSIs(ROI, maxSpeed, timePeriod, allowedShipTypes, navTypes, raw_data_dir
             new_row = {"MMSI": track["mmsi"], "File": path}
             dataframe = dataframe.append(new_row, ignore_index=True)
 
+    # Keep track of the total number of AIS points (after filtering all but min speed)
+    # and keep track of the number of points after also filtering out by min speed
+    print(
+        "Total number of AIS points (after every filter expect min speed): "
+        + str(n_points)
+    )
+    print(
+        "Total number of AIS points (after also filtering out by min speed): "
+        + str(n_points_after_min_speed)
+    )
     dataframe.sort_values(["MMSI"], inplace=True)
     return dataframe
 
@@ -146,7 +169,7 @@ def ReadAndJoinTracks(paths):
     return df, stype
 
 
-def FilterDataFrame(df, ROI, maxSpeed, timePeriod):
+def FilterDataFrame(df, ROI, maxSpeed, timePeriod, min_speed=None):
     lat_min, lat_max, lon_min, lon_max = ROI
     t_min, t_max = timePeriod
     t_min = round((t_min - datetime.datetime(2019, 1, 1)).total_seconds())
@@ -161,6 +184,9 @@ def FilterDataFrame(df, ROI, maxSpeed, timePeriod):
         & (df["speed"] <= maxSpeed)
     ]
 
+    if min_speed is not None:
+        # Add filtering on the min speed as well as an experiment
+        df = df.loc[df["speed"] >= min_speed]
     return df
 
 
@@ -238,7 +264,6 @@ def createDataset(
     dataset_filename,
     inject_cargo_proportion=0.0,
 ):
-
     # Determine the max and min updates. The max update should not be overly large since
     # when sequences get too long it can hinder learning (derivatives can get small).
     if params["resampleFrequency"] == 0:  # No resampling (take the actual AIS updates)
@@ -259,6 +284,7 @@ def createDataset(
         params["shiptypes"],
         params["navstatuses"],
         raw_data_dir,
+        params["minspeed"],
     )  # Returns a data frame with relevant "MMSI" and its "File" name
 
     if inject_cargo_proportion != 0.0:
@@ -270,6 +296,7 @@ def createDataset(
             ["Carg"],
             params["navstatuses"],
             raw_data_dir,
+            params["minspeed"],
         )
         cargo_mmsis = cargo_mmsis.sample(int(mmsis.shape[0] * inject_cargo_proportion))
         mmsis = pd.concat([mmsis, cargo_mmsis], ignore_index=True)
@@ -284,9 +311,13 @@ def createDataset(
             # ReadAndJoinTracks for the list of all filepaths this MMSI has data in
             # Returns a data frame of AIS message attributes with the current nav status, as well as shipType
             data, shipType = ReadAndJoinTracks(tmp["File"].tolist())
-            # Take only data in this ROI and timeperiod, with speed < maxspeed
+            # Take only data in this ROI and timeperiod, with min_speed < speed < maxspeed
             data = FilterDataFrame(
-                data, params["ROI"], params["maxspeed"], params["timeperiod"]
+                data,
+                params["ROI"],
+                params["maxspeed"],
+                params["timeperiod"],
+                params["minspeed"],
             )
             data = FilterOutStationaryNavStatus(
                 data
@@ -359,6 +390,7 @@ def createDataset(
         "ROI": params["ROI"],
         "timeperiod": params["timeperiod"],
         "maxspeed": params["maxspeed"],
+        "minspeed": params["minspeed"],
         "navstatuses": params["navstatuses"],
         "shiptypes": params["shiptypes"],
         "binedges": params["binedges"],
