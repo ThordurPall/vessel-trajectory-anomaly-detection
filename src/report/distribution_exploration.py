@@ -23,7 +23,8 @@ def main():  # main(input_filepath, output_filepath):
     """
     # explore_Gaussian_Bornholm()
     # explore_Gaussian_Bornholm_with_bias()
-    explore_Gaussian_Skagen_with_bias()
+    # explore_Gaussian_Skagen_with_bias()
+    explore_Gaussian_Skagen_with_bias_06()
 
 
 def explore_Gaussian_Bornholm():
@@ -201,6 +202,69 @@ def explore_Gaussian_Skagen_with_bias():
         "Histogram",
         "MeanCourse",
         file_name="Skagen_mean_course_distribution_with_bias",
+        xlabel="Mean course (degrees)",
+        # xlim=[0, 360],
+        dist_x=x,
+        dist_y=stats.norm.pdf(x, mu, sigma),
+        stat="density",
+    )
+
+
+def explore_Gaussian_Skagen_with_bias_06():
+    """Look into the Skagen Gaussian distribution found on some test examples"""
+    # Use the SummaryTrajectories class
+    fig_size = (4, 4)
+    summary_file = (
+        "RegionSkagen_01062019_30092019_Fish_1_315569220_0_06_trajectories_summary.csv"
+    )
+    summary_trajectories = SummaryTrajectories(
+        summary_file,
+        save_figures=True,
+        plot_figures=False,
+        fig_size=fig_size,
+        date="DateTimeStart",
+        font_scale=1.5,
+    )
+    summary_trajectories.explore_fig_dir = (
+        summary_trajectories.project_dir / "figures" / "report" / "regions" / "Skagen"
+    )
+    df = summary_trajectories.df
+    df["Track length (sec)"] = pd.to_datetime(df["DateTimeEnd"]) - pd.to_datetime(
+        df["DateTimeStart"]
+    )
+    df["Track length (sec)"] = df["Track length (sec)"].dt.total_seconds().astype(int)
+    df["Ship type"] = df["ShipType"]
+
+    # Plot the mean speed distribution
+    plt.clf()
+    df_hist = df.reset_index()
+    df_hist = df_hist.loc[df_hist["Ship type"] == "Fishing"]
+    df_hist = df_hist.reset_index()
+    mu = 7.364528
+    sigma = 0.730895
+    x = np.linspace(mu - 3 * sigma, mu + 3 * sigma, 100)
+    summary_trajectories.hist_bar_plot(
+        df_hist,
+        "Histogram",
+        "MeanSpeed",
+        file_name="Skagen_mean_speed_distribution_with_bias_06",
+        xlabel="Mean speed (knots)",
+        xlim=[0, 13],
+        dist_x=x,
+        dist_y=stats.norm.pdf(x, mu, sigma),
+        stat="density",
+    )
+
+    # Plot the mean course histogram for fishing vessels
+    plt.clf()
+    mu = 184.037445
+    sigma = 91.399092
+    x = np.linspace(mu - 3 * sigma, mu + 3 * sigma, 100)
+    summary_trajectories.hist_bar_plot(
+        df_hist,
+        "Histogram",
+        "MeanCourse",
+        file_name="Skagen_mean_course_distribution_with_bias_06",
         xlabel="Mean course (degrees)",
         # xlim=[0, 360],
         dist_x=x,
